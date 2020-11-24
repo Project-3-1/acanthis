@@ -1,0 +1,44 @@
+<launch>
+
+   	<group ns="camera">
+	    <node pkg="video_stream_opencv" type="video_stream" name="camera_stream" output="screen"> 
+	    	<remap from="camera" to="image_raw" />
+	    	<param name="camera_name" type="string" value="camera" />
+	        <param name="video_stream_provider" type="string" value="0" />
+	        <param name="set_camera_fps" type="double" value="60" />
+	        <param name="buffer_queue_size" type="int" value="1" />
+	        <param name="fps" type="double" value="60" />
+	        <param name="frame_id" type="string" value="camera" />
+
+                <param name="start_frame" type="int" value="0" />
+                <param name="stop_frame" type="int" value="-1" />
+	        <param name="width" type="int" value="0" />
+	        <param name="height" type="int" value="0" />
+	    </node>
+
+	    <node if="false" name="camera_image_view" pkg="image_view" type="image_view">
+	    	<remap from="image" to="image_raw" />
+	    </node>
+
+		<arg name="marker_size" default="4.4" />
+		<arg name="max_new_marker_error" default="0.08" />
+		<arg name="max_track_error" default="0.2" />
+
+		<arg name="output_frame" default="/camera" />
+
+		<node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
+			<param name="marker_size"           type="double" value="$(arg marker_size)" />
+			<param name="max_new_marker_error"  type="double" value="$(arg max_new_marker_error)" />
+			<param name="max_track_error"       type="double" value="$(arg max_track_error)" />
+			<param name="output_frame"          type="string" value="$(arg output_frame)" />
+
+			<remap from="camera_image"  to="/camera/image_raw" />
+			<remap from="camera_info"   to="/camera/camera_info" />
+		</node>
+	</group>
+	
+	<node name="emergency_node" pkg="acanthis" type="EmergencyNode" />
+
+
+
+</launch>
