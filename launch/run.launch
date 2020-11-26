@@ -23,7 +23,7 @@
 	</group>
 
         <group ns="acanthis">
-            <node name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" />
+            <node name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
         </group>
 
         <group if="false" ns="camera">
