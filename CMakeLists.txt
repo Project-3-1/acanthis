@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0.2)
 project(acanthis)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-# add_compile_options(-std=c++11)
+add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   message_generation
+  crazyflie_driver
 )
 
 ## System dependencies are found with CMake's conventions
@@ -30,7 +31,7 @@ find_package(catkin REQUIRED COMPONENTS
 ## To declare and build messages, services or actions from within this
 ## package, follow these steps:
 ## * Let MSG_DEP_SET be the set of packages whose message types you use in
-##   your messages/services/actions (e.g. std_msgs, actionlib_msgs, ...).
+##   your messages/services/actions (e.g. stcrazyflied_msgs, actionlib_msgs, ...).
 ## * In the file package.xml:
 ##   * add a build_depend tag for "message_generation"
 ##   * add a build_depend and a exec_depend tag for each package in MSG_DEP_SET
@@ -48,19 +49,16 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-add_message_files(
-  FILES
+#add_message_files(
+#  FILES
   # Emergency:
-  emergency/Shutdown.msg
   # Exploration
   # State Manager
-)
+#)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
 #   FILES
-#   Service1.srv
-#   Service2.srv
 # )
 
 ## Generate actions in the 'action' folder
@@ -106,11 +104,11 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
+  INCLUDE_DIRS include
 #  LIBRARIES acanthis
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime
+  CATKIN_DEPENDS message_runtime crazyflie_driver
 )
 
 ###########
@@ -120,9 +118,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-# include
   ${catkin_INCLUDE_DIRS}
+  acanthis
+  #crazyflie_driver
 )
+
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
@@ -210,6 +210,6 @@ include_directories(
 # catkin_add_nosetests(test)
 
 
-add_executable(EmergencyNode src/EmergencyNode.cpp)
-target_link_libraries(EmergencyNode ${catkin_LIBRARIES})
+add_executable(FlyRectangleDemo src/FlyRectangleDemo.cpp)
+target_link_libraries(FlyRectangleDemo ${catkin_LIBRARIES})
 #add_dependencies(talker beginner_tutorials_generate_messages_cpp)

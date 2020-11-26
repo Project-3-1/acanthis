@@ -5,19 +5,28 @@
 	<include file="$(find crazyflie_driver)/launch/crazyflie_server.launch"/>
 
 	<group ns="crazyflie">
-		<!--<param name="crazyflie/pid_rate/yaw_kp" value="200"/>-->
-		<include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
-			<arg name="uri" value="$(arg uri)" />
-			<arg name="tf_prefix" value="crazyflie" />
-			<arg name="enable_logging" value="true" />
-			<arg name="enable_logging_pose" value="true" />
-		</include>
+            <!--<param name="crazyflie/pid_rate/yaw_kp" value="200"/>-->
+            <include file="$(find crazyflie_driver)/launch/crazyflie_add.launch">
+                    <arg name="uri" value="$(arg uri)" />
+                    <arg name="tf_prefix" value="crazyflie" />
+                    <arg name="enable_logging" value="true" />
+                    <arg name="enable_logging_pose" value="true" />
+            </include>
 
-		<node name="crazyflie_demo_hover" pkg="crazyflie_demo" type="Position.py" output="screen">
-		</node>
+            <node name="controller" pkg="crazyflie_controller" type="crazyflie_controller" output="screen">
+              <param name="frame" value="frame" />
+              <param name="worldFrame" value="world" />
+              <rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" />
+            </node>
+
+
 	</group>
 
-   	<group ns="camera">
+        <group ns="acanthis">
+            <node name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" />
+        </group>
+
+        <group if="false" ns="camera">
 	    <node pkg="video_stream_opencv" type="video_stream" name="camera_stream" output="screen"> 
 	    	<remap from="camera" to="image_raw" />
 	    	<param name="camera_name" type="string" value="camera" />
@@ -54,7 +63,7 @@
 		</node>
 	</group>
 	
-	<node name="emergency_node" pkg="acanthis" type="EmergencyNode" />
+
 
 
 
