@@ -24,14 +24,8 @@
             </rosparam>
         </node>
 
-        <node name="controller" pkg="crazyflie_controller" type="crazyflie_controller" output="screen">
-            <param name="frame" value="frame" />
-            <param name="worldFrame" value="world" />
-            <param name="enHighLevel" value="1" />
-            <rosparam command="load" file="$(find crazyflie_controller)/config/crazyflie2.yaml" />=
-        </node>
     </group>
-    <group if="false" ns="acanthis">
+    <group if="true" ns="acanthis">
         <node name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
     </group>
     <group if="false" ns="camera">
