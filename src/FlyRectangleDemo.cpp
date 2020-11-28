@@ -26,9 +26,6 @@ int main(int argc, char **argv)
     ros::NodeHandle n("~");
 
     // --- init static variables
-    ros::Rate rate(10);
-    ros::Publisher cmd_position_pub = n.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
-    ros::Publisher cmd_stop_pub = n.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
 
     FlightController controller(n,10, cmd_position_pub, cmd_stop_pub);
 

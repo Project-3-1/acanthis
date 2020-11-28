@@ -9,7 +9,7 @@
 #include "crazyflie_driver/Position.h"
 
 
-FlightController::FlightController(ros::NodeHandle n, int frequency, const ros::Publisher& cmd_position_pub, const ros::Publisher& cmd_stop_pub)
+FlightController::FlightController(ros::NodeHandle node, int frequency)
 {
   this->cmd_position_pub = cmd_position_pub;
   this->cmd_stop_pub = cmd_stop_pub;
@@ -22,17 +22,20 @@ FlightController::FlightController(ros::NodeHandle n, int frequency, const ros::
   this->position.y = 0;
   this->position.z = 0;
   this->position.yaw = 0;
-  n.subscribe("/crazyflie/pose", 1,&FlightController::_updatePos,this);
+  node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this);
+  node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
+  node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
 }
 
 
 void FlightController::arm_drone() {
-  ros::Duration(2).sleep();
-  while(!ros::ok()) {
-    ROS_INFO("Waiting for ros...");
+  float dis = pose.position.x * pose.position.x + pose.position.y * pose.position.y + pose.position.z * pose.position.z;
+  while((pose.position.x * pose.position.x + pose.position.y * pose.position.y + pose.position.z * pose.position.z) == 0) {
+    ROS_INFO("Waiting for crazyflie to send first /crazyflie/pose packet...");
+    ros::Duration(0.1).sleep();
   }
   for(int i = 0; i < 3; i++) {
-    this->moveTo(0, 0, 0, 0, .1);
+    this->moveTo(0, 0, 0, 0);
   }
 }
 
@@ -62,12 +65,8 @@ void FlightController::takeoff(double height) {
 
 void FlightController::land(){
     ROS_INFO("LANDING ACTIVE");
-    ros::Rate rate = create_rate();
-    while(ros::ok()){
-        ROS_INFO("%f",pose.position.z);
-        ros::spinOnce();
-        rate.sleep();
-    }
+    move(0,0, 0.2-pose.position.z, 0);
+    stop();
 }
 
 void FlightController::stop() {

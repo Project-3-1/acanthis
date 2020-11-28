@@ -12,7 +12,7 @@ class FlightController {
   ros::Publisher cmd_position_pub, cmd_stop_pub;
 
   public:
-      FlightController(ros::NodeHandle n, int freqency, const ros::Publisher& cmd_position_pub, const ros::Publisher& cmd_stop_pub);
+      FlightController(ros::NodeHandle n, int freqency);
       void arm_drone();
       void moveTo(float x, float y, float z, float yaw);
       void move(float x, float y, float z, float yaw);
