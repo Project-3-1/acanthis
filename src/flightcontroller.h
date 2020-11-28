@@ -14,7 +14,8 @@ class FlightController {
   public:
       FlightController(ros::NodeHandle n, int freqency, const ros::Publisher& cmd_position_pub, const ros::Publisher& cmd_stop_pub);
       void arm_drone();
-      void moveTo(float x, float y, float z, float yaw, float max_time);
+      void moveTo(float x, float y, float z, float yaw);
+      void move(float x, float y, float z, float yaw);
       void takeoff(double height);
       void _updatePos(const geometry_msgs::PoseStamped & pos);
       void land();

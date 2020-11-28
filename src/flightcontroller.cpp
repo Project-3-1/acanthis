@@ -38,27 +38,33 @@ void FlightController::arm_drone() {
 
 void FlightController::takeoff(double height) {
   ROS_ASSERT(height > 0.3);
-  while(ros::ok()) {
-    for(int i = 0; i < 10; i++) {
-      // --- takes us to 30cm in 1sec - this is the min altiude because of the ground effect
-      moveTo(0, 0, i / 30.0, 0, 0.1);
-    }
+  ROS_ASSERT(pose.position.z < 0.05); // we are landed currently 
 
-    double delta = height - 0.3;
-    if(abs(delta) > 0.01) { // --- if delta greater than 1cm
-      for(int i = 1; i <= ceil(delta / 0.1); i++) {
-        moveTo(0, 0, height - (1 - i * 0.1) * delta, 0, 0.1);
-      }
+  ros::Rate rate = create_rate();
+
+  while(ros::ok()) {
+    // --- takes us to 30cm in 1sec - this is the min altiude because of the ground effect
+    for(int i = 1; i <= frequency; i++) {
+        this->position.header.seq++;
+        this->position.header.stamp = ros::Time::now();
+        this->position.x = pose.position.x;
+        this->position.y = pose.position.y;
+        this->position.z = i / 30.0;
+        this->position.yaw = yaw;
+        this->cmd_position_pub.publish(position);
+        rate.sleep();
     }
-    break;
   }
+
+  // move to the final height in normal flight mode
+  move(0, 0, height - 0.3, 0);
 }
 
 void FlightController::land(){
     ROS_INFO("LANDING ACTIVE");
     ros::Rate rate = create_rate();
     while(ros::ok()){
-        ROS_INFO("%f",pose.pose.position.z);
+        ROS_INFO("%f",pose.position.z);
         ros::spinOnce();
         rate.sleep();
     }
@@ -69,31 +75,76 @@ void FlightController::stop() {
   cmd_stop_pub.publish(stop_msg);
 }
 
-void FlightController::moveTo(float x, float y, float z, float yaw, float max_time) {
+void FlightController::move(float dx, float dy, float dz, float dyaw) {
+  moveTo(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz, 0); //TODO what is the yaw field called in pose?
+}
+
+
+void FlightController::moveTo(float x, float y, float z, float yaw) {
   ros::Time start = ros::Time::now();
   ros::Rate rate = create_rate();
-  while (ros::ok()) {
 
+  // Note: The idea here is that we first adjust the z axis because going up and down is
+  // slow. Furthermore, we make the assumption that z >= 0.3 because of the ground effect.
+  // After the drone has reached the desired altiude, we adjust the remaining horizontal axis.
+  // TODO: Test if we can just combine all axis (does it even matter)
 
-    this->position.header.seq++;
-    this->position.header.stamp = ros::Time::now();
-    this->position.x = x;
-    this->position.y = y;
-    this->position.z = z;
-    this->position.yaw = yaw;
+  // --- max movement speed for each axis
+  const float max_x = 0.2;
+  const float max_y = 0.2;
+  const float max_z = 0.1;
 
-    this->cmd_position_pub.publish(position);
-    rate.sleep();
+  float cx = pose.position.x;
+  float cy = pose.position.y;
+  float cz = pose.position.z;
 
-    if (max_time > 0) {
-      if((ros::Time::now() - start).toSec() > max_time) {
-        break;
+  // --- how much we have to move on each axis
+  float dx = x - cx;
+  float dy = y - cy;
+  float dz = z - cz;
+
+  // --- we adjust the z axis first because it is slow
+  if(abs(dz) > 0) {
+    float z_speed = dz / max_z;
+    while(ros::ok()) {
+      for(int i = 1; i <= ceil(frequency * z_speed); i++) {
+        this->position.header.seq++;
+        this->position.header.stamp = ros::Time::now();
+        this->position.x = cx;
+        this->position.y = cy;
+        this->position.z = cz + (z_speed * i) / frequency;
+        this->position.yaw = yaw;
+        this->cmd_position_pub.publish(position);
+
+        ros::spinOnce();
+        rate.sleep();
       }
-    }
-    else {
       break;
     }
   }
+  
+
+  // --- adjust x and z axis
+  float max_time = max(abs(dx / max_x), abs(dy / max_y));
+  float x_speed = dx / max_time;
+  float y_speed = dy / max_time;
+  
+  while (ros::ok()) {
+    for(int i = 1; i <= ceil(frequency * max_time); i++) {
+        this->position.header.seq++;
+        this->position.header.stamp = ros::Time::now();
+        this->position.x = cx + (x_speed * i) / frequency;
+        this->position.y = cy + (y_speed * i) / frequency;
+        this->position.z = z;
+        this->position.yaw = yaw;
+        this->cmd_position_pub.publish(position);
+
+        ros::spinOnce();
+        rate.sleep();
+      }
+  }
+
+  // --- TODO: figure out if yaw is in degrees or radians and add it 
 }
 
 ros::Rate FlightController::create_rate() {
@@ -101,6 +152,6 @@ ros::Rate FlightController::create_rate() {
   return rate;
 }
 
-void FlightController::_updatePos(const geometry_msgs::PoseStamped& pos) {
-    this->pose = pos;
+void FlightController::_updatePos(const geometry_msgs::PoseStamped& pose) {
+    this->pose = pose.pose;
 }
