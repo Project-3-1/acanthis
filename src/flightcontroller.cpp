@@ -89,9 +89,9 @@ void FlightController::stop() {
  * @param dz delta z
  * @param dyaw delta yaw
  */
-void FlightController::move(double dx, double dy, double dz, double dyaw) {
+void FlightController::move(double dx, double dy, double dz, int dyaw) {
     moveTo(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
-           0); //TODO what is the yaw field called in pose?
+           _calculate_yaw(pose.orientation) * RAD_TO_DEG + dyaw);
 }
 
 /**
@@ -101,7 +101,7 @@ void FlightController::move(double dx, double dy, double dz, double dyaw) {
  * @param z new z position
  * @param yaw new yaw rotation
  */
-void FlightController::moveTo(double x, double y, double z, double yaw) {
+void FlightController::moveTo(double x, double y, double z, int yaw) {
     ros::Rate rate = create_rate();
 
     // Note: The idea here is that we first adjust the z axis because going up and down is
@@ -110,32 +110,30 @@ void FlightController::moveTo(double x, double y, double z, double yaw) {
     // TODO: Test if we can just combine all axis (does it even matter)
 
     // --- max movement speed for each axis in m/s
-    const double max_x = 0.2;
-    const double max_y = 0.2;
-    const double max_z = 0.1;
+    const double max_x = 0.2; // in m/s
+    const double max_y = 0.2; // in m/s
+    const double max_z = 0.1; // in m/s
+    const double max_yaw = 20; // in deg/s
 
+    // --- current values
     double cx = pose.position.x;
     double cy = pose.position.y;
     double cz = pose.position.z;
+    int cyaw = _calculate_yaw(pose.orientation) * RAD_TO_DEG;
 
     // --- how much we have to move on each axis
     double dx = x - cx;
     double dy = y - cy;
     double dz = z - cz;
+    int dyaw = (yaw-cyaw + 540) % 360 - 180;
 
     // --- we adjust the z axis first because it is slow
     if (abs(dz) > 0) {
-        double z_speed = dz / max_z;
+        double z_steps = abs(dz / max_z);
+        double z_speed = dz / z_steps;
         while (ros::ok()) {
-            for (int i = 1; i <= ceil(frequency * z_speed); i++) {
-                position.header.seq++;
-                position.header.stamp = ros::Time::now();
-                position.x = cx;
-                position.y = cy;
-                position.z = cz + (z_speed * i) / frequency;
-                position.yaw = yaw;
-                cmd_position_pub.publish(position);
-
+            for (int i = 1; i <= floor(frequency * z_speed); i++) {
+                _publish_position(cx, cy, cz + (z_speed * i) / frequency, yaw);
                 ros::spinOnce();
                 rate.sleep();
             }
@@ -143,28 +141,41 @@ void FlightController::moveTo(double x, double y, double z, double yaw) {
         }
     }
 
-
     // --- adjust x and z axis
-    double max_time = std::max(abs(dx / max_x), abs(dy / max_y));
-    double x_speed = dx / max_time;
-    double y_speed = dy / max_time;
+    double max_steps = std::max(abs(dx / max_x), abs(dy / max_y));
 
-    while (ros::ok()) {
-        for (int i = 1; i <= ceil(frequency * max_time); i++) {
-            this->position.header.seq++;
-            this->position.header.stamp = ros::Time::now();
-            this->position.x = cx + (x_speed * i) / frequency;
-            this->position.y = cy + (y_speed * i) / frequency;
-            this->position.z = z;
-            this->position.yaw = yaw;
-            this->cmd_position_pub.publish(position);
+    if(max_steps > 0) {
+        double x_speed = dx / max_steps;
+        double y_speed = dy / max_steps;
 
-            ros::spinOnce();
-            rate.sleep();
+        while (ros::ok()) {
+            for (int i = 1; i <= floor(frequency * max_steps); i++) {
+                _publish_position(cx + (x_speed * i) / frequency, cy + (y_speed * i) / frequency, z, yaw);
+                ros::spinOnce();
+                rate.sleep();
+            }
         }
     }
 
-    // --- TODO: figure out if yaw is in degrees or radians and add it
+    // --- adjust yaw
+    if (abs(dyaw) > 0) {
+        double yaw_steps = abs(dyaw / max_yaw);
+        double yaw_speed = dyaw / yaw_steps;
+        while (ros::ok()) {
+            for (int i = 1; i <= floor(frequency * yaw_speed); i++) {
+                _publish_position(x, y, z,cyaw + (yaw_speed * i) / frequency);
+                ros::spinOnce();
+                rate.sleep();
+            }
+            break;
+        }
+    }
+
+    // --- final adjustment
+    while (ros::ok()) {
+        _publish_position(x, y, z, yaw);
+        break;
+    }
 }
 
 ros::Rate FlightController::create_rate() const {
@@ -177,4 +188,20 @@ ros::Rate FlightController::create_rate() const {
  */
 void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
     this->pose = p.pose;
+}
+
+void FlightController::_publish_position(double x, double y, double z, double yaw) {
+    position.header.seq++;
+    position.header.stamp = ros::Time::now();
+    position.x = x;
+    position.y = y;
+    position.z = z;
+    position.yaw = yaw;
+    cmd_position_pub.publish(position);
+}
+
+double FlightController::_calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type q) {
+    double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
+    double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
+    return std::atan2(siny_cosp, cosy_cosp);
 }

@@ -5,6 +5,9 @@
 #include "crazyflie_driver/Position.h"
 #include "geometry_msgs/PoseStamped.h"
 
+const double DEG_TO_RAD = M_PI / 180.0;
+const double RAD_TO_DEG = 180.0 / M_PI;
+
 class FlightController {
     crazyflie_driver::Position position;
     double frequency;
@@ -16,9 +19,9 @@ public:
 
     void arm_drone();
 
-    void moveTo(double x, double y, double z, double yaw);
+    void moveTo(double x, double y, double z, int yaw);
 
-    void move(double dx, double dy, double dz, double dyaw);
+    void move(double dx, double dy, double dz, int dyaw);
 
     void takeoff(float height);
 
@@ -30,7 +33,8 @@ public:
 
 private:
     void _updatePos(const geometry_msgs::PoseStamped &p);
-
+    void _publish_position(double x, double y, double z, double yaw);
+    double _calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type orientation);
 };
 
 #endif // FLIGHTCONTROLLER_H
