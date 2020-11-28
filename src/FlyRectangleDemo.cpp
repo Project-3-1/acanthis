@@ -10,51 +10,16 @@
 
 using namespace std;
 
-
-//static void stop() {
-//  std_msgs::Empty stop_msg;
-//  cmd_stop_pub.publish(stop_msg);
-//}
-
-
-
-int main(int argc, char **argv)
-{
-
-
+int main(int argc, char **argv) {
     ros::init(argc, argv, "FlyRectangleDemo", ros::init_options::AnonymousName);
-    ros::NodeHandle n("~");
+    ros::NodeHandle node("~");
 
-    // --- init static variables
-
-    FlightController controller(n,10, cmd_position_pub, cmd_stop_pub);
+    FlightController controller(node, 10);
 
     controller.arm_drone();
+    controller.takeoff(.5);
+    controller.move(0.1, 0.1, 0, 0);
     controller.land();
-  //  for(int i = 0; i < 50; i++) {
-//    ROS_INFO("turn: %d", i);
-//    controller.moveTo(0, 0, 10, 0, -1);
-//    rate.sleep();
-//    ros::spinOnce();
-//  }
-
-  controller.stop();
-//  FlightController controller(10, cmd_stop_pub, cmd_position_pub);
-//  controller.moveTo(0, 0, 0, 0);
-
-//  // --- take off
-//  while(ros::ok()) {
-//    for(int i = 0; i < 10; i++) {
-//      moveTo(0, 0, i / 25.0, 0);
-//    }
-//    for(int i = 0; i < 20; i++) {
-//      moveTo(0, 0, 0.4, 0);
-//    }
-//    break;
-//  }
-
-//  moveTo(0, 0, 0.6, 0);
-//  stop();
-  ros::spin();
-  return 0;
+    ros::spin();
+    return 0;
 }
