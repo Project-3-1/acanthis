@@ -22,17 +22,18 @@ int main(int argc, char **argv)
 {
 
 
-  ros::init(argc, argv, "FlyRectangleDemo", ros::init_options::AnonymousName);
-  ros::NodeHandle n("~");
+    ros::init(argc, argv, "FlyRectangleDemo", ros::init_options::AnonymousName);
+    ros::NodeHandle n("~");
 
-  // --- init static variables
-  ros::Rate rate(10);
-  ros::Publisher cmd_position_pub = n.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
-  ros::Publisher cmd_stop_pub = n.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
+    // --- init static variables
+    ros::Rate rate(10);
+    ros::Publisher cmd_position_pub = n.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
+    ros::Publisher cmd_stop_pub = n.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
 
-  FlightController controller(10, cmd_position_pub, cmd_stop_pub);
-  controller.arm_drone();
-  controller.takeoff(.4);
+    FlightController controller(n,10, cmd_position_pub, cmd_stop_pub);
+
+    controller.arm_drone();
+    controller.land();
   //  for(int i = 0; i < 50; i++) {
 //    ROS_INFO("turn: %d", i);
 //    controller.moveTo(0, 0, 10, 0, -1);
@@ -60,5 +61,3 @@ int main(int argc, char **argv)
   ros::spin();
   return 0;
 }
-
-

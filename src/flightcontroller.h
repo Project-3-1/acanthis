@@ -3,17 +3,20 @@
 
 #include "ros/ros.h"
 #include "crazyflie_driver/Position.h"
+#include "geometry_msgs/PoseStamped.h"
 
 class FlightController {
   crazyflie_driver::Position position;
   int frequency;
+  geometry_msgs::PoseStamped pose;
   ros::Publisher cmd_position_pub, cmd_stop_pub;
 
   public:
-      FlightController(int freqency, ros::Publisher cmd_position_pub, ros::Publisher cmd_stop_pub);
+      FlightController(ros::NodeHandle n, int freqency, const ros::Publisher& cmd_position_pub, const ros::Publisher& cmd_stop_pub);
       void arm_drone();
       void moveTo(float x, float y, float z, float yaw, float max_time);
-      void takeoff(float height);
+      void takeoff(double height);
+      void _updatePos(const geometry_msgs::PoseStamped & pos);
       void land();
       void stop();
       ros::Rate create_rate();
