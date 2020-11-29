@@ -133,7 +133,7 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
         double z_speed = dz / z_steps;
         while (ros::ok()) {
             for (int i = 1; i <= floor(frequency * z_speed); i++) {
-                _publish_position(cx, cy, cz + (z_speed * i) / frequency, yaw);
+                _publish_position(cx, cy, cz + (z_speed * i) / frequency, cyaw);
                 ros::spinOnce();
                 rate.sleep();
             }
@@ -150,7 +150,7 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
 
         while (ros::ok()) {
             for (int i = 1; i <= floor(frequency * max_steps); i++) {
-                _publish_position(cx + (x_speed * i) / frequency, cy + (y_speed * i) / frequency, z, yaw);
+                _publish_position(cx + (x_speed * i) / frequency, cy + (y_speed * i) / frequency, z, cyaw);
                 ros::spinOnce();
                 rate.sleep();
             }
