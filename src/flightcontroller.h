@@ -13,6 +13,7 @@ class FlightController {
     double frequency;
     geometry_msgs::PoseStamped::_pose_type pose;
     ros::Publisher cmd_position_pub, cmd_stop_pub;
+    ros::Subscriber crazyflie_pose_sub;
 
 public:
     FlightController(ros::NodeHandle n, double freqency);

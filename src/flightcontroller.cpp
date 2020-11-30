@@ -23,20 +23,30 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->position.y = 0;
     this->position.z = 0;
     this->position.yaw = 0;
-    node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this);
-    cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
-    cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
+
+    // ---
+    this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this);
+    ros::Rate rate = create_rate();
+    while (ros::ok()) {
+        if(this->crazyflie_pose_sub.getNumPublishers() == 0) {
+            ROS_WARN("FlightController: Waiting for /crazyflie/pose...");
+        } else {
+            ROS_INFO("FlightController: /crazyflie/pose is now publishing...");
+            break;
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
+
+    // ---
+    this->cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
+    this->cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
 }
 
 /**
  * In order to arm the drone, we have to send a few messages.
  */
 void FlightController::arm_drone() {
-    while ((pose.position.x * pose.position.x + pose.position.y * pose.position.y +
-            pose.position.z * pose.position.z) == 0) {
-        ROS_INFO("Waiting for crazyflie to send first /crazyflie/pose packet...");
-        ros::Duration(0.1).sleep();
-    }
     for (int i = 0; i < 3; i++) {
         this->moveTo(0, 0, 0, 0);
     }
@@ -54,17 +64,13 @@ void FlightController::takeoff(float height) {
     ros::Rate rate = create_rate();
 
     while (ros::ok()) {
-        // --- takes us to 30cm in 1sec - this is the min altiude because of the ground effect
+        // --- takes us to 30cm in 1sec - this is the min altitude because of the ground effect
         for (int i = 1; i <= frequency; i++) {
-            this->position.header.seq++;
-            this->position.header.stamp = ros::Time::now();
-            this->position.x = pose.position.x;
-            this->position.y = pose.position.y;
-            this->position.z = i / 30.0;
-            this->position.yaw = 0; //TODO calculate yaw
-            this->cmd_position_pub.publish(position);
+            _publish_position(pose.position.x, pose.position.y, i / 30.0, _calculate_yaw(pose.orientation));
+            ros::spinOnce();
             rate.sleep();
         }
+        break;
     }
 
     // move to the final height in normal flight mode
@@ -187,17 +193,19 @@ ros::Rate FlightController::create_rate() const {
  * @param p
  */
 void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
+    ROS_WARN("update pose");
     this->pose = p.pose;
 }
 
 void FlightController::_publish_position(double x, double y, double z, double yaw) {
-    position.header.seq++;
+    ROS_INFO("_publish_position -> x: %.2f, y: %.2f, z: %.2f, yaw:  %.2f", x, y, z, yaw);
+    /*position.header.seq++;
     position.header.stamp = ros::Time::now();
     position.x = x;
     position.y = y;
     position.z = z;
     position.yaw = yaw;
-    cmd_position_pub.publish(position);
+    cmd_position_pub.publish(position);*/
 }
 
 double FlightController::_calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type q) {

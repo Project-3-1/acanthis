@@ -1,10 +1,4 @@
 #include "ros/ros.h"
-#include "crazyflie_driver/Takeoff.h"
-#include "crazyflie_driver/UpdateParams.h"
-#include "crazyflie_driver/Hover.h"
-#include "crazyflie_driver/Position.h"
-#include "std_msgs/Empty.h"
-#include "geometry_msgs/Point.h"
 
 #include "flightcontroller.h"
 
