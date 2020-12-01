@@ -12,15 +12,15 @@ int main(int argc, char **argv) {
 
     controller.arm_drone();
     controller.takeoff(1);
-    /*controller.moveRelative(1, 0, 0, 0);
+    controller.moveRelative(1, 0, 0, 0);
     controller.moveRelative(0, 0, 0, 90);
     controller.moveRelative(0, 1, 0, 0);
     controller.moveRelative(0, 0, 0, 90);
     controller.moveRelative(-1, 0, 0, 0);
     controller.moveRelative(0, 0, 0, 90);
     controller.moveRelative(0, -1, 0, 0);
-    controller.moveRelative(0, 0, 0, 90);*/
-    controller.moveRelative(0.5, 0.5, 0.2, 90);
+    controller.moveRelative(0, 0, 0, 90);
+    //controller.moveRelative(0.5, 0.5, 0.2, 90);
     controller.land();
 
     ros::spin();

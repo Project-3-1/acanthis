@@ -26,49 +26,11 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->position.z = 0;
     this->position.yaw = 0;
 
-    // ---
     this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this); // actually important to keep this reference around...
-    ros::Rate rate = create_rate();
-    while (ros::ok()) {
-        if(this->crazyflie_pose_sub.getNumPublishers() == 0) {
-            ROS_WARN("FlightController: Waiting for /crazyflie/pose...");
-        } else {
-            ROS_INFO("FlightController: /crazyflie/pose is now publishing...");
-            break;
-        }
-        ros::spinOnce();
-        rate.sleep();
-    }
+    this->_wait_for_pose_subscription();
 
     this->crazyflie_ranger_sub = node.subscribe("/crazyflie/ranger_deck", 1, &FlightController::_updateRanger, this); // actually important to keep this reference around...
-    while (ros::ok()) {
-        if(this->crazyflie_ranger_sub.getNumPublishers() == 0) {
-            ROS_WARN("FlightController: Waiting for /crazyflie/ranger_deck...");
-        } else {
-            ROS_INFO("FlightController: /crazyflie/ranger_deck is now publishing...");
-            double start_left = this->range_left, start_right = this->range_right, start_up = this->range_up,
-                start_back = this->range_back, start_front = this->range_down;
-
-            double change = 0;
-            for(int i = 0; i < 10; i++)  {
-                change += std::sqrt(std::pow(start_left - this->range_left, 2) + std::pow(start_right - this->range_right, 2) +
-                                    std::pow(start_up - this->range_up, 2) + std::pow(start_back- this->range_back, 2) +
-                                    std::pow(start_front - this->range_front, 2));
-                ros::spinOnce();
-                rate.sleep();
-            }
-
-            if(change == 0) {
-                ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
-                ROS_ASSERT(false);
-            } else {
-                ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
-            }
-            break;
-        }
-        ros::spinOnce();
-        rate.sleep();
-    }
+    this->_wait_for_ranger_subscription();
 
     // ---
     this->cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
@@ -159,16 +121,12 @@ void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
  */
 void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
     ros::Rate rate = create_rate();
-    // Note: The idea here is that we first adjust the z axis because going up and down is
-    // slow. Furthermore, we make the assumption that z >= 0.3 because of the ground effect.
-    // After the drone has reached the desired altitude, we adjust the remaining horizontal axis.
-    // TODO: Test if we can just combine all axis (does it even matter)
 
     // --- max movement speed for each axis in m/s
-    const double max_x = 0.2; // in m/s
-    const double max_y = 0.2; // in m/s
+    const double max_x = 0.6; // in m/s
+    const double max_y = 0.6; // in m/s
     const double max_z = 0.2; // in m/s
-    const double max_yaw = 90; // in deg/s
+    const double max_yaw = 45; // in deg/s
 
     // --- current values
     double cx = pose.position.x;
@@ -282,9 +240,56 @@ void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
 
 
 void FlightController::_updateRanger(const crazyflie_driver::GenericLogData::ConstPtr ranger) {
-    this->range_front = ranger->values[0];
-    this->range_right = ranger->values[1];
-    this->range_back = ranger->values[2];
-    this->range_left = ranger->values[3];
-    this->range_up = ranger->values[4];
+    this->range_front = ranger->values[Direction::FORWARD];
+    this->range_right = ranger->values[Direction::RIGHT];
+    this->range_back = ranger->values[Direction::BACK];
+    this->range_left = ranger->values[Direction::LEFT];
+    this->range_up = ranger->values[Direction::UP];
+}
+
+void FlightController::_wait_for_pose_subscription() {
+    // ---
+    ros::Rate rate = create_rate();
+    while (ros::ok()) {
+        if(this->crazyflie_pose_sub.getNumPublishers() == 0) {
+            ROS_WARN("FlightController: Waiting for /crazyflie/pose...");
+        } else {
+            ROS_INFO("FlightController: /crazyflie/pose is now publishing...");
+            break;
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
+}
+
+void FlightController::_wait_for_ranger_subscription() {
+    ros::Rate rate = create_rate();
+    while (ros::ok()) {
+        if(this->crazyflie_ranger_sub.getNumPublishers() == 0) {
+            ROS_WARN("FlightController: Waiting for /crazyflie/ranger_deck...");
+        } else {
+            ROS_INFO("FlightController: /crazyflie/ranger_deck is now publishing...");
+            double start_left = this->range_left, start_right = this->range_right, start_up = this->range_up,
+                    start_back = this->range_back, start_front = this->range_down;
+
+            double change = 0;
+            for(int i = 0; i < 10; i++)  {
+                change += std::sqrt(std::pow(start_left - this->range_left, 2) + std::pow(start_right - this->range_right, 2) +
+                                    std::pow(start_up - this->range_up, 2) + std::pow(start_back- this->range_back, 2) +
+                                    std::pow(start_front - this->range_front, 2));
+                ros::spinOnce();
+                rate.sleep();
+            }
+
+            if(change == 0) {
+                ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
+                ROS_ASSERT(false);
+            } else {
+                ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
+            }
+            break;
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
 }

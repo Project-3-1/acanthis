@@ -42,6 +42,17 @@ private:
     void _updateRanger(const crazyflie_driver::GenericLogData::ConstPtr ranger);
     void _publish_position(double x, double y, double z, double yaw);
     double _calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type orientation);
+
+    void _wait_for_pose_subscription();
+    void _wait_for_ranger_subscription();
+};
+
+enum Direction {
+    FORWARD = 0,
+    RIGHT   = 1,
+    BACK    = 2,
+    LEFT    = 3,
+    UP      = 4
 };
 
 #endif // FLIGHTCONTROLLER_H
