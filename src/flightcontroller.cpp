@@ -26,10 +26,10 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->position.z = 0;
     this->position.yaw = 0;
 
-    this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this); // actually important to keep this reference around...
+    this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_update_pos, this); // actually important to keep this reference around...
     this->_wait_for_pose_subscription();
 
-    this->crazyflie_ranger_sub = node.subscribe("/crazyflie/ranger_deck", 1, &FlightController::_updateRanger, this); // actually important to keep this reference around...
+    this->crazyflie_ranger_sub = node.subscribe("/crazyflie/ranger_deck", 1, &FlightController::_update_ranger, this); // actually important to keep this reference around...
     this->_wait_for_ranger_subscription();
 
     // ---
@@ -42,7 +42,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
  */
 void FlightController::arm_drone() {
     for (int i = 0; i < 3; i++) {
-        this->moveRelative(0, 0, 0, 0);
+        this->move_relative(0, 0, 0, 0);
     }
 }
 
@@ -68,18 +68,24 @@ void FlightController::takeoff(float height) {
     }
 
     // move to the final height in normal flight mode
-    moveAbsolute(0, 0, height, 0);
+    move_absolute(0, 0, height, 0);
 }
 
 void FlightController::land() {
-    ROS_INFO("LANDING ACTIVE");
-    moveRelative(0, 0, 0.2 - pose.position.z, 0);
+    move_relative(0, 0, 0.2 - pose.position.z, 0);
     stop();
 }
 
 void FlightController::stop() {
     std_msgs::Empty stop_msg;
     cmd_stop_pub.publish(stop_msg);
+}
+
+double FlightController::get_distance_measurement(Direction direction) {
+    if(direction == Direction::DOWN) { // special case
+        return pose.position.z;
+    }
+    return
 }
 
 /**
@@ -90,13 +96,40 @@ void FlightController::hover(double time) {
     geometry_msgs::PoseStamped::_pose_type cp = this->pose;
     ros::Time start = ros::Time::now();
     while (true) {
-        ROS_INFO("yaw-copy:  %.2f", _calculate_yaw(cp.orientation));
-        moveAbsolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation)); //todo fix
+        move_absolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation)); //todo fix
 
         ros::Time now = ros::Time::now();
         if((now - start).toSec() >= 5) {
             break;
         }
+    }
+}
+
+
+void FlightController::move_until_object(Direction direction, double distance) {
+    double x = 0;
+    double y = 0;
+    double z = 0;
+
+    // check if those signs are correct
+    switch (direction) {
+        case FORWARD:
+            x = 1;
+            break;
+        case RIGHT:
+            y = 1;
+            break;
+        case BACK:
+            x = -1;
+            break;
+        case LEFT:
+            y = -1;
+            break;
+        case UP:
+            z = 1;
+            break;
+        case DOWN:
+            break;
     }
 }
 
@@ -107,9 +140,9 @@ void FlightController::hover(double time) {
  * @param dz delta z
  * @param dyaw delta yaw
  */
-void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
-    moveAbsolute(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
-                 _calculate_yaw(pose.orientation) + dyaw);
+void FlightController::move_relative(double dx, double dy, double dz, int dyaw) {
+    move_absolute(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
+                  _calculate_yaw(pose.orientation) + dyaw);
 }
 
 /**
@@ -119,7 +152,7 @@ void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
  * @param z new z position
  * @param yaw new yaw rotation
  */
-void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
+void FlightController::move_absolute(double x, double y, double z, int yaw) {
     ros::Rate rate = create_rate();
 
     // --- max movement speed for each axis in m/s
@@ -234,17 +267,17 @@ double FlightController::_calculate_yaw(geometry_msgs::PoseStamped::_pose_type::
  * Called by the /crazyflie/pose subscriber to update the pose of the drone.
  * @param p
  */
-void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
+void FlightController::_update_pos(const geometry_msgs::PoseStamped &p) {
     this->pose = p.pose;
 }
 
 
-void FlightController::_updateRanger(const crazyflie_driver::GenericLogData::ConstPtr ranger) {
-    this->range_front = ranger->values[Direction::FORWARD];
-    this->range_right = ranger->values[Direction::RIGHT];
-    this->range_back = ranger->values[Direction::BACK];
-    this->range_left = ranger->values[Direction::LEFT];
-    this->range_up = ranger->values[Direction::UP];
+void FlightController::_update_ranger(const crazyflie_driver::GenericLogData::ConstPtr &ranger) {
+    range_measurements[Direction::FORWARD]  = ranger->values[Direction::FORWARD];
+    range_measurements[Direction::RIGHT]    = ranger->values[Direction::RIGHT];
+    range_measurements[Direction::BACK]     = ranger->values[Direction::BACK];
+    range_measurements[Direction::LEFT]     = ranger->values[Direction::LEFT];
+    range_measurements[Direction::UP]       = ranger->values[Direction::UP];
 }
 
 void FlightController::_wait_for_pose_subscription() {
@@ -255,6 +288,34 @@ void FlightController::_wait_for_pose_subscription() {
             ROS_WARN("FlightController: Waiting for /crazyflie/pose...");
         } else {
             ROS_INFO("FlightController: /crazyflie/pose is now publishing...");
+
+            double start_x = pose.position.x;
+            double start_y = pose.position.x;
+            double start_z = pose.position.x;
+
+            double change = 0;
+            const int checks = 10;
+            for (int i = 0; i < checks; ++i) {
+                change += std::sqrt(
+                            std::pow(start_x - pose.position.x, 2)
+                            + std::pow(start_y - pose.position.y, 2)
+                            + std::pow(start_z - pose.position.z, 2)
+                        );
+                ros::spinOnce();
+                rate.sleep();
+            }
+
+            //TODO
+            if((change / checks) == 0) {
+                ROS_ERROR("FlightController: /crazyflie/pose not updating");
+                ROS_ASSERT(false);
+            } else if((change / checks) < 0.1) {
+                ROS_ERROR("FlightController: /crazyflie/pose reports high variability (%.2fcm) when we expected to "
+                          "be stationary.", (change / checks));
+                ROS_ASSERT(false);
+            } else {
+                ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
+            }
             break;
         }
         ros::spinOnce();
@@ -269,19 +330,26 @@ void FlightController::_wait_for_ranger_subscription() {
             ROS_WARN("FlightController: Waiting for /crazyflie/ranger_deck...");
         } else {
             ROS_INFO("FlightController: /crazyflie/ranger_deck is now publishing...");
-            double start_left = this->range_left, start_right = this->range_right, start_up = this->range_up,
-                    start_back = this->range_back, start_front = this->range_down;
+            double start_left = get_distance_measurement(Direction::LEFT),
+                    start_right = get_distance_measurement(Direction::RIGHT),
+                    start_up = get_distance_measurement(Direction::UP),
+                    start_back = get_distance_measurement(Direction::BACK),
+                    start_front = get_distance_measurement(Direction::FORWARD);
 
             double change = 0;
-            for(int i = 0; i < 10; i++)  {
-                change += std::sqrt(std::pow(start_left - this->range_left, 2) + std::pow(start_right - this->range_right, 2) +
-                                    std::pow(start_up - this->range_up, 2) + std::pow(start_back- this->range_back, 2) +
-                                    std::pow(start_front - this->range_front, 2));
+            const int checks = 10;
+            for(int i = 0; i < checks; i++)  {
+                change += std::sqrt(
+                            std::pow(start_left - get_distance_measurement(Direction::LEFT), 2)
+                            + std::pow(start_right - get_distance_measurement(Direction::RIGHT), 2)
+                            + std::pow(start_up - get_distance_measurement(Direction::UP), 2)
+                            + std::pow(start_back - get_distance_measurement(Direction::BACK), 2)
+                            + std::pow(start_front - get_distance_measurement(Direction::FORWARD), 2));
                 ros::spinOnce();
                 rate.sleep();
             }
 
-            if(change == 0) {
+            if((change / checks) == 0) {
                 ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
                 ROS_ASSERT(false);
             } else {
