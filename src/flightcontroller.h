@@ -2,6 +2,7 @@
 #define FLIGHTCONTROLLER_H
 
 #include "ros/ros.h"
+
 #include "crazyflie_driver/Position.h"
 #include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
@@ -36,6 +37,8 @@ public:
     void move_relative(double dx, double dy, double dz, int dyaw);
 
     void move_until_object(Direction direction, double distance);
+    void turn_left();
+    void turn_right();
 
     double get_distance_measurement(Direction direction);
 
@@ -46,7 +49,6 @@ public:
 
 
 private:
-    ros::Rate create_rate() const;
     void _update_pos(const geometry_msgs::PoseStamped &p);
     void _update_ranger(const crazyflie_driver::GenericLogData::ConstPtr &ranger);
     void _publish_position(double x, double y, double z, double yaw);
@@ -54,6 +56,8 @@ private:
 
     void _wait_for_pose_subscription();
     void _wait_for_ranger_subscription();
+
+    ros::Rate _create_rate() const;
 };
 
 #endif // FLIGHTCONTROLLER_H

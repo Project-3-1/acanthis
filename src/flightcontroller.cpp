@@ -2,14 +2,13 @@
 
 #include <cstdlib>
 #include <cmath>
+#include "vector"
 
 #include "ros/ros.h"
 #include "std_msgs/Empty.h"
 
 #include "crazyflie_driver/Position.h"
 #include "crazyflie_driver/GenericLogData.h"
-
-const bool ENABLE_YAW_CONTROL = true;
 
 /**
  * Creates a new flight controller to control the Crazyflie.
@@ -71,11 +70,19 @@ void FlightController::takeoff(float height) {
     move_absolute(0, 0, height, 0);
 }
 
+/**
+ * Automatically lands the drone at the current position.
+ */
 void FlightController::land() {
     move_relative(0, 0, 0.2 - pose.position.z, 0);
     stop();
 }
 
+/**
+ * This sends a MOTOR STOP command to the drone. So be careful where you call this. It is often much safer to just call
+ * FlightController::land() when you need automated landing, or FlightController::hover() if you need the drone to
+ * keep its current position.
+ */
 void FlightController::stop() {
     std_msgs::Empty stop_msg;
     cmd_stop_pub.publish(stop_msg);
@@ -85,7 +92,7 @@ double FlightController::get_distance_measurement(Direction direction) {
     if(direction == Direction::DOWN) { // special case
         return pose.position.z;
     }
-    return
+    return range_measurements[direction];
 }
 
 /**
@@ -105,13 +112,17 @@ void FlightController::hover(double time) {
     }
 }
 
-
-void FlightController::move_until_object(Direction direction, double distance) {
+/**
+ * Moves in the specified direction until an object is measured to be within the provided distance of the drone.
+ * @param direction
+ * @param min_distance
+ */
+void FlightController::move_until_object(Direction direction, double min_distance) {
     double x = 0;
     double y = 0;
     double z = 0;
 
-    // check if those signs are correct
+    // todo check if those signs are correct
     switch (direction) {
         case FORWARD:
             x = 1;
@@ -129,8 +140,23 @@ void FlightController::move_until_object(Direction direction, double distance) {
             z = 1;
             break;
         case DOWN:
+            z = -1;
             break;
     }
+
+    double delta_distance = get_distance_measurement(direction) - min_distance;
+    if(delta_distance > 0) {
+        move_relative(x * delta_distance, y * delta_distance, z * delta_distance, 0);
+    }
+
+}
+
+void FlightController::turn_left() {
+    move_relative(0, 0, 0, 90);
+}
+
+void FlightController::turn_right() {
+    move_relative(0, 0, 0, -90);
 }
 
 /**
@@ -153,7 +179,7 @@ void FlightController::move_relative(double dx, double dy, double dz, int dyaw) 
  * @param yaw new yaw rotation
  */
 void FlightController::move_absolute(double x, double y, double z, int yaw) {
-    ros::Rate rate = create_rate();
+    ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
     const double max_x = 0.6; // in m/s
@@ -208,7 +234,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     }
 
     // --- adjust yaw
-    if (abs(dyaw) > 0 && ENABLE_YAW_CONTROL) {
+    if (abs(dyaw) > 0) {
         double yaw_steps = abs(dyaw / max_yaw);
         double yaw_speed = dyaw / yaw_steps;
         while (ros::ok()) {
@@ -238,20 +264,17 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     }
 }
 
-ros::Rate FlightController::create_rate() const {
+ros::Rate FlightController::_create_rate() const {
     return {frequency};
 }
 
 void FlightController::_publish_position(double x, double y, double z, double yaw) {
-    ///ROS_INFO("_publish_position -> x: %.2f, y: %.2f, z: %.2f, yaw:  %.2f", x, y, z, yaw);
     position.header.seq++;
     position.header.stamp = ros::Time::now();
     position.x = x;
     position.y = y;
     position.z = z;
-    if(ENABLE_YAW_CONTROL) {
-        position.yaw = yaw;
-    }
+    position.yaw = yaw;
     cmd_position_pub.publish(position);
 }
 
@@ -282,7 +305,7 @@ void FlightController::_update_ranger(const crazyflie_driver::GenericLogData::Co
 
 void FlightController::_wait_for_pose_subscription() {
     // ---
-    ros::Rate rate = create_rate();
+    ros::Rate rate = _create_rate();
     while (ros::ok()) {
         if(this->crazyflie_pose_sub.getNumPublishers() == 0) {
             ROS_WARN("FlightController: Waiting for /crazyflie/pose...");
@@ -324,7 +347,7 @@ void FlightController::_wait_for_pose_subscription() {
 }
 
 void FlightController::_wait_for_ranger_subscription() {
-    ros::Rate rate = create_rate();
+    ros::Rate rate = _create_rate();
     while (ros::ok()) {
         if(this->crazyflie_ranger_sub.getNumPublishers() == 0) {
             ROS_WARN("FlightController: Waiting for /crazyflie/ranger_deck...");
@@ -360,4 +383,5 @@ void FlightController::_wait_for_ranger_subscription() {
         ros::spinOnce();
         rate.sleep();
     }
+
 }
