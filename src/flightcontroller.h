@@ -20,9 +20,9 @@ public:
 
     void arm_drone();
 
-    void moveTo(double x, double y, double z, int yaw);
+    void moveAbsolute(double x, double y, double z, int yaw);
 
-    void move(double dx, double dy, double dz, int dyaw);
+    void moveRelative(double dx, double dy, double dz, int dyaw);
 
     void takeoff(float height);
 
@@ -30,9 +30,11 @@ public:
 
     void stop();
 
-    ros::Rate create_rate() const;
+    void hover(double time);
+
 
 private:
+    ros::Rate create_rate() const;
     void _updatePos(const geometry_msgs::PoseStamped &p);
     void _publish_position(double x, double y, double z, double yaw);
     double _calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type orientation);

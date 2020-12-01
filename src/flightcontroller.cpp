@@ -8,6 +8,7 @@
 
 #include "crazyflie_driver/Position.h"
 
+const bool ENABLE_YAW_CONTROL = false;
 
 /**
  * Creates a new flight controller to control the Crazyflie.
@@ -25,7 +26,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->position.yaw = 0;
 
     // ---
-    this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this);
+    this->crazyflie_pose_sub = node.subscribe("/crazyflie/pose", 1, &FlightController::_updatePos, this); // actually important to keep this reference around...
     ros::Rate rate = create_rate();
     while (ros::ok()) {
         if(this->crazyflie_pose_sub.getNumPublishers() == 0) {
@@ -48,7 +49,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
  */
 void FlightController::arm_drone() {
     for (int i = 0; i < 3; i++) {
-        this->moveTo(0, 0, 0, 0);
+        this->moveAbsolute(0, 0, 0, 0);
     }
 }
 
@@ -59,14 +60,14 @@ void FlightController::arm_drone() {
  */
 void FlightController::takeoff(float height) {
     ROS_ASSERT(height >= 0.3);
-    ROS_ASSERT(pose.position.z <= 0.05); // we are landed currently
+    //ROS_ASSERT(pose.position.z <= 0.05);
 
-    ros::Rate rate = create_rate();
+    ros::Rate rate(10);
 
     while (ros::ok()) {
         // --- takes us to 30cm in 1sec - this is the min altitude because of the ground effect
-        for (int i = 1; i <= frequency; i++) {
-            _publish_position(pose.position.x, pose.position.y, i / 30.0, _calculate_yaw(pose.orientation));
+        for (int i = 1; i <= 10; i++) {
+            _publish_position(pose.position.x, pose.position.y, i / 25.0, _calculate_yaw(pose.orientation));
             ros::spinOnce();
             rate.sleep();
         }
@@ -74,12 +75,12 @@ void FlightController::takeoff(float height) {
     }
 
     // move to the final height in normal flight mode
-    move(0, 0, height - 0.3f, 0);
+    moveAbsolute(0, 0, height, 0);
 }
 
 void FlightController::land() {
     ROS_INFO("LANDING ACTIVE");
-    move(0, 0, 0.2 - pose.position.z, 0);
+    moveRelative(0, 0, 0.2 - pose.position.z, 0);
     stop();
 }
 
@@ -89,15 +90,33 @@ void FlightController::stop() {
 }
 
 /**
+ * Hovers in place for the specified amount of time
+ * @param time in seconds
+ */
+void FlightController::hover(double time) {
+    geometry_msgs::PoseStamped::_pose_type cp = this->pose;
+    ros::Time start = ros::Time::now();
+    while (true) {
+        ROS_INFO("copy:  %.2f", cp.position.x);
+        moveAbsolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation)); //todo fix
+
+        ros::Time now = ros::Time::now();
+        if((now - start).toSec() >= 5) {
+            break;
+        }
+    }
+}
+
+/**
  * Moves the drone relative to its current position.
  * @param dx delta x
  * @param dy delta x
  * @param dz delta z
  * @param dyaw delta yaw
  */
-void FlightController::move(double dx, double dy, double dz, int dyaw) {
-    moveTo(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
-           _calculate_yaw(pose.orientation) * RAD_TO_DEG + dyaw);
+void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
+    moveAbsolute(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
+                 _calculate_yaw(pose.orientation) * RAD_TO_DEG + dyaw);
 }
 
 /**
@@ -107,9 +126,9 @@ void FlightController::move(double dx, double dy, double dz, int dyaw) {
  * @param z new z position
  * @param yaw new yaw rotation
  */
-void FlightController::moveTo(double x, double y, double z, int yaw) {
+void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
     ros::Rate rate = create_rate();
-
+    ROS_INFO("rate: %.2f %.2f", rate.expectedCycleTime().toSec(), rate.cycleTime().toSec());
     // Note: The idea here is that we first adjust the z axis because going up and down is
     // slow. Furthermore, we make the assumption that z >= 0.3 because of the ground effect.
     // After the drone has reached the desired altitude, we adjust the remaining horizontal axis.
@@ -138,7 +157,8 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
         double z_steps = abs(dz / max_z);
         double z_speed = dz / z_steps;
         while (ros::ok()) {
-            for (int i = 1; i <= floor(frequency * z_speed); i++) {
+            ROS_INFO(" dz: %f, max_z: %f, z steps: %f", dz, max_z, ceil(frequency * z_steps));
+            for (int i = 1; i <= abs(ceil(frequency * z_steps)); i++) {
                 _publish_position(cx, cy, cz + (z_speed * i) / frequency, cyaw);
                 ros::spinOnce();
                 rate.sleep();
@@ -149,6 +169,7 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
 
     // --- adjust x and z axis
     double max_steps = std::max(abs(dx / max_x), abs(dy / max_y));
+    ROS_INFO("max steps for x and z axis: %f", max_steps);
 
     if(max_steps > 0) {
         double x_speed = dx / max_steps;
@@ -160,11 +181,12 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
                 ros::spinOnce();
                 rate.sleep();
             }
+            break;
         }
     }
 
     // --- adjust yaw
-    if (abs(dyaw) > 0) {
+    if (abs(dyaw) > 0 && ENABLE_YAW_CONTROL) {
         double yaw_steps = abs(dyaw / max_yaw);
         double yaw_speed = dyaw / yaw_steps;
         while (ros::ok()) {
@@ -180,7 +202,15 @@ void FlightController::moveTo(double x, double y, double z, int yaw) {
     // --- final adjustment
     while (ros::ok()) {
         _publish_position(x, y, z, yaw);
-        break;
+        ros::spinOnce();
+        double error = std::sqrt((std::pow(pose.position.x - x, 2) + std::pow(pose.position.y - y, 2)
+                                  + std::pow(pose.position.z - z, 2)));
+
+        if(error < 0.05) {
+            break;
+        }
+        ROS_WARN("Error still too big: %.2f", error);
+        rate.sleep();
     }
 }
 
@@ -193,19 +223,21 @@ ros::Rate FlightController::create_rate() const {
  * @param p
  */
 void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
-    ROS_WARN("update pose");
+    ROS_WARN("update pose z: %.2f", p.pose.position.z);
     this->pose = p.pose;
 }
 
 void FlightController::_publish_position(double x, double y, double z, double yaw) {
-    ROS_INFO("_publish_position -> x: %.2f, y: %.2f, z: %.2f, yaw:  %.2f", x, y, z, yaw);
-    /*position.header.seq++;
+    ///ROS_INFO("_publish_position -> x: %.2f, y: %.2f, z: %.2f, yaw:  %.2f", x, y, z, yaw);
+    position.header.seq++;
     position.header.stamp = ros::Time::now();
     position.x = x;
     position.y = y;
     position.z = z;
-    position.yaw = yaw;
-    cmd_position_pub.publish(position);*/
+    if(ENABLE_YAW_CONTROL) {
+        position.yaw = yaw;
+    }
+    cmd_position_pub.publish(position);
 }
 
 double FlightController::_calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type q) {
