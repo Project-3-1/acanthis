@@ -7,8 +7,9 @@
 #include "std_msgs/Empty.h"
 
 #include "crazyflie_driver/Position.h"
+#include "crazyflie_driver/GenericLogData.h"
 
-const bool ENABLE_YAW_CONTROL = false;
+const bool ENABLE_YAW_CONTROL = true;
 
 /**
  * Creates a new flight controller to control the Crazyflie.
@@ -39,6 +40,36 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
         rate.sleep();
     }
 
+    this->crazyflie_ranger_sub = node.subscribe("/crazyflie/ranger_deck", 1, &FlightController::_updateRanger, this); // actually important to keep this reference around...
+    while (ros::ok()) {
+        if(this->crazyflie_ranger_sub.getNumPublishers() == 0) {
+            ROS_WARN("FlightController: Waiting for /crazyflie/ranger_deck...");
+        } else {
+            ROS_INFO("FlightController: /crazyflie/ranger_deck is now publishing...");
+            double start_left = this->range_left, start_right = this->range_right, start_up = this->range_up,
+                start_back = this->range_back, start_front = this->range_down;
+
+            double change = 0;
+            for(int i = 0; i < 10; i++)  {
+                change += std::sqrt(std::pow(start_left - this->range_left, 2) + std::pow(start_right - this->range_right, 2) +
+                                    std::pow(start_up - this->range_up, 2) + std::pow(start_back- this->range_back, 2) +
+                                    std::pow(start_front - this->range_front, 2));
+                ros::spinOnce();
+                rate.sleep();
+            }
+
+            if(change == 0) {
+                ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
+                ROS_ASSERT(false);
+            } else {
+                ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
+            }
+            break;
+        }
+        ros::spinOnce();
+        rate.sleep();
+    }
+
     // ---
     this->cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
     this->cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
@@ -49,7 +80,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
  */
 void FlightController::arm_drone() {
     for (int i = 0; i < 3; i++) {
-        this->moveAbsolute(0, 0, 0, 0);
+        this->moveRelative(0, 0, 0, 0);
     }
 }
 
@@ -97,7 +128,7 @@ void FlightController::hover(double time) {
     geometry_msgs::PoseStamped::_pose_type cp = this->pose;
     ros::Time start = ros::Time::now();
     while (true) {
-        ROS_INFO("copy:  %.2f", cp.position.x);
+        ROS_INFO("yaw-copy:  %.2f", _calculate_yaw(cp.orientation));
         moveAbsolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation)); //todo fix
 
         ros::Time now = ros::Time::now();
@@ -116,7 +147,7 @@ void FlightController::hover(double time) {
  */
 void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
     moveAbsolute(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
-                 _calculate_yaw(pose.orientation) * RAD_TO_DEG + dyaw);
+                 _calculate_yaw(pose.orientation) + dyaw);
 }
 
 /**
@@ -128,7 +159,6 @@ void FlightController::moveRelative(double dx, double dy, double dz, int dyaw) {
  */
 void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
     ros::Rate rate = create_rate();
-    ROS_INFO("rate: %.2f %.2f", rate.expectedCycleTime().toSec(), rate.cycleTime().toSec());
     // Note: The idea here is that we first adjust the z axis because going up and down is
     // slow. Furthermore, we make the assumption that z >= 0.3 because of the ground effect.
     // After the drone has reached the desired altitude, we adjust the remaining horizontal axis.
@@ -137,20 +167,21 @@ void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
     // --- max movement speed for each axis in m/s
     const double max_x = 0.2; // in m/s
     const double max_y = 0.2; // in m/s
-    const double max_z = 0.1; // in m/s
-    const double max_yaw = 20; // in deg/s
+    const double max_z = 0.2; // in m/s
+    const double max_yaw = 90; // in deg/s
 
     // --- current values
     double cx = pose.position.x;
     double cy = pose.position.y;
     double cz = pose.position.z;
-    int cyaw = _calculate_yaw(pose.orientation) * RAD_TO_DEG;
+    double cyaw = _calculate_yaw(pose.orientation);
 
     // --- how much we have to move on each axis
     double dx = x - cx;
     double dy = y - cy;
     double dz = z - cz;
-    int dyaw = (yaw-cyaw + 540) % 360 - 180;
+    double dyaw = (yaw-cyaw);// + 3 * M_PI) % 2 * M_PI - M_PI_2;
+    ROS_INFO("delta yaw: %.2f", dyaw);
 
     // --- we adjust the z axis first because it is slow
     if (abs(dz) > 0) {
@@ -190,7 +221,7 @@ void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
         double yaw_steps = abs(dyaw / max_yaw);
         double yaw_speed = dyaw / yaw_steps;
         while (ros::ok()) {
-            for (int i = 1; i <= floor(frequency * yaw_speed); i++) {
+            for (int i = 1; i <= floor(frequency * yaw_steps); i++) {
                 _publish_position(x, y, z,cyaw + (yaw_speed * i) / frequency);
                 ros::spinOnce();
                 rate.sleep();
@@ -206,25 +237,18 @@ void FlightController::moveAbsolute(double x, double y, double z, int yaw) {
         double error = std::sqrt((std::pow(pose.position.x - x, 2) + std::pow(pose.position.y - y, 2)
                                   + std::pow(pose.position.z - z, 2)));
 
-        if(error < 0.05) {
+        double yaw_error = std::fmod(std::abs(_calculate_yaw(pose.orientation) - yaw), 360);
+
+        if(error < 0.05 && yaw_error <= 10) {
             break;
         }
-        ROS_WARN("Error still too big: %.2f", error);
+        ROS_WARN("Error still too big -> dis_err: %.2f, yaw_err: %.2fdeg", error, yaw_error);
         rate.sleep();
     }
 }
 
 ros::Rate FlightController::create_rate() const {
     return {frequency};
-}
-
-/**
- * Called by the /crazyflie/pose subscriber to update the pose of the drone.
- * @param p
- */
-void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
-    ROS_WARN("update pose z: %.2f", p.pose.position.z);
-    this->pose = p.pose;
 }
 
 void FlightController::_publish_position(double x, double y, double z, double yaw) {
@@ -243,5 +267,24 @@ void FlightController::_publish_position(double x, double y, double z, double ya
 double FlightController::_calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type q) {
     double siny_cosp = 2 * (q.w * q.z + q.x * q.y);
     double cosy_cosp = 1 - 2 * (q.y * q.y + q.z * q.z);
-    return std::atan2(siny_cosp, cosy_cosp);
+    return std::atan2(siny_cosp, cosy_cosp) * RAD_TO_DEG;
+}
+
+// --- Subscribers
+
+/**
+ * Called by the /crazyflie/pose subscriber to update the pose of the drone.
+ * @param p
+ */
+void FlightController::_updatePos(const geometry_msgs::PoseStamped &p) {
+    this->pose = p.pose;
+}
+
+
+void FlightController::_updateRanger(const crazyflie_driver::GenericLogData::ConstPtr ranger) {
+    this->range_front = ranger->values[0];
+    this->range_right = ranger->values[1];
+    this->range_back = ranger->values[2];
+    this->range_left = ranger->values[3];
+    this->range_up = ranger->values[4];
 }

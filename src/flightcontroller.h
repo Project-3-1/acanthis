@@ -3,6 +3,7 @@
 
 #include "ros/ros.h"
 #include "crazyflie_driver/Position.h"
+#include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
 
 const double DEG_TO_RAD = M_PI / 180.0;
@@ -13,7 +14,9 @@ class FlightController {
     double frequency;
     geometry_msgs::PoseStamped::_pose_type pose;
     ros::Publisher cmd_position_pub, cmd_stop_pub;
-    ros::Subscriber crazyflie_pose_sub;
+    ros::Subscriber crazyflie_pose_sub, crazyflie_ranger_sub;
+
+    double range_front, range_back, range_left, range_right, range_up, range_down;
 
 public:
     FlightController(ros::NodeHandle n, double freqency);
@@ -36,6 +39,7 @@ public:
 private:
     ros::Rate create_rate() const;
     void _updatePos(const geometry_msgs::PoseStamped &p);
+    void _updateRanger(const crazyflie_driver::GenericLogData::ConstPtr ranger);
     void _publish_position(double x, double y, double z, double yaw);
     double _calculate_yaw(geometry_msgs::PoseStamped::_pose_type::_orientation_type orientation);
 };
