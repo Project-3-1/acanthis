@@ -34,7 +34,7 @@ public:
     void arm_drone();
 
     void move_absolute(double x, double y, double z, int yaw);
-    void move_relative(double dx, double dy, double dz, int dyaw);
+    void move_relative(double x, double y, double z, int yaw);
 
     void move_until_object(Direction direction, double distance);
     void turn_left();

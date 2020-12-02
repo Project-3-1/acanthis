@@ -296,11 +296,11 @@ void FlightController::_update_pos(const geometry_msgs::PoseStamped &p) {
 
 
 void FlightController::_update_ranger(const crazyflie_driver::GenericLogData::ConstPtr &ranger) {
-    range_measurements[Direction::FORWARD]  = ranger->values[Direction::FORWARD];
-    range_measurements[Direction::RIGHT]    = ranger->values[Direction::RIGHT];
-    range_measurements[Direction::BACK]     = ranger->values[Direction::BACK];
-    range_measurements[Direction::LEFT]     = ranger->values[Direction::LEFT];
-    range_measurements[Direction::UP]       = ranger->values[Direction::UP];
+    range_measurements[Direction::FORWARD] = ranger->values[Direction::FORWARD];
+    range_measurements[Direction::RIGHT] = ranger->values[Direction::RIGHT];
+    range_measurements[Direction::BACK] = ranger->values[Direction::BACK];
+    range_measurements[Direction::LEFT] = ranger->values[Direction::LEFT];
+    range_measurements[Direction::UP] = ranger->values[Direction::UP];
 }
 
 void FlightController::_wait_for_pose_subscription() {
@@ -313,8 +313,8 @@ void FlightController::_wait_for_pose_subscription() {
             ROS_INFO("FlightController: /crazyflie/pose is now publishing...");
 
             double start_x = pose.position.x;
-            double start_y = pose.position.x;
-            double start_z = pose.position.x;
+            double start_y = pose.position.y;
+            double start_z = pose.position.z;
 
             double change = 0;
             const int checks = 10;
@@ -329,15 +329,12 @@ void FlightController::_wait_for_pose_subscription() {
             }
 
             //TODO
-            if((change / checks) == 0) {
-                ROS_ERROR("FlightController: /crazyflie/pose not updating");
-                ROS_ASSERT(false);
-            } else if((change / checks) < 0.1) {
+           if((change / checks) > 0.1) {
                 ROS_ERROR("FlightController: /crazyflie/pose reports high variability (%.2fcm) when we expected to "
                           "be stationary.", (change / checks));
                 ROS_ASSERT(false);
             } else {
-                ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
+                ROS_INFO("FlightController: /crazyflie/pose seems to be okay (change: %.2f)", change);
             }
             break;
         }
@@ -372,12 +369,12 @@ void FlightController::_wait_for_ranger_subscription() {
                 rate.sleep();
             }
 
-            if((change / checks) == 0) {
+            /*if((change / checks) == 0) {
                 ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
                 ROS_ASSERT(false);
             } else {
                 ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
-            }
+            }*/
             break;
         }
         ros::spinOnce();
