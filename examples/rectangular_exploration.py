@@ -211,6 +211,13 @@ if __name__ == '__main__':
 
                     # start the Left Left - Right Right pattern to explore the room.
                     # The drone turns 90 degrees every time it is close to as wall and then flies for a certain pre determined distance before turning again (same direction as before)
+                    
+                    #Initialize switch direction
+		            if multiranger.right < multiranger.left:
+			            switch = "next_is_left"
+		            else:
+			            switch = "next_is_right"
+                        
                     while not target_is_found():
                         # safety method to stop the drone by holding a hand above it.
                         if is_close(multiranger.up):
