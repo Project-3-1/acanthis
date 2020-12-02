@@ -9,6 +9,8 @@
 
 const double DEG_TO_RAD = M_PI / 180.0;
 const double RAD_TO_DEG = 180.0 / M_PI;
+const double MM_TO_M = 1.0 / 1000;
+const double M_TO_MM = 1000;
 
 enum Direction {
     FORWARD = 0,

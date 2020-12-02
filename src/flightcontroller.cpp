@@ -74,7 +74,7 @@ void FlightController::takeoff(float height) {
  * Automatically lands the drone at the current position.
  */
 void FlightController::land() {
-    move_relative(0, 0, 0.2 - pose.position.z, 0);
+    move_relative(0, 0, 0.1 - pose.position.z, 0);
     stop();
 }
 
@@ -92,7 +92,7 @@ double FlightController::get_distance_measurement(Direction direction) {
     if(direction == Direction::DOWN) { // special case
         return pose.position.z;
     }
-    return range_measurements[direction];
+    return range_measurements[direction] * MM_TO_M;
 }
 
 /**
@@ -115,7 +115,7 @@ void FlightController::hover(double time) {
 /**
  * Moves in the specified direction until an object is measured to be within the provided distance of the drone.
  * @param direction
- * @param min_distance
+ * @param min_distance In metres
  */
 void FlightController::move_until_object(Direction direction, double min_distance) {
     double x = 0;
@@ -145,6 +145,7 @@ void FlightController::move_until_object(Direction direction, double min_distanc
     }
 
     double delta_distance = get_distance_measurement(direction) - min_distance;
+    ROS_INFO("DELTA_DISTANCE %f", delta_distance);
     if(delta_distance > 0) {
         move_relative(x * delta_distance, y * delta_distance, z * delta_distance, 0);
     }
@@ -369,12 +370,12 @@ void FlightController::_wait_for_ranger_subscription() {
                 rate.sleep();
             }
 
-            /*if((change / checks) == 0) {
+            if((change / checks) == 0) {
                 ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
                 ROS_ASSERT(false);
             } else {
                 ROS_INFO("FlightController: /crazyflie/ranger_deck seems to be okay (change: %.2f)", change);
-            }*/
+            }
             break;
         }
         ros::spinOnce();
