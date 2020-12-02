@@ -75,15 +75,15 @@ if __name__ == '__main__':
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf=cf) as scf:
         # 1. Takes off (1st step) when the commander is created. Hovers at 1 m
-        with MotionCommander(scf,0.5) as motion_commander:
+        with MotionCommander(scf,0.3) as motion_commander:
             with Multiranger(scf) as multiranger:
                 keep_flying = True
                 ranges = ["front","left","right","back"]
                 switch = "next_is_right"
-                HEIGHT = 0.5  # meter
+                HEIGHT = 0.3  # meter
                 VELOCITY = 0.1
                 field_of_view = 0.5
-                distance_parallel_to_wall_btw_turns = 0.2
+                distance_parallel_to_wall_btw_turns = 0.5
                 is_parallel_to_first_wall = False
                 first_wall_is_found = False
                 start_following_target = False
@@ -211,13 +211,13 @@ if __name__ == '__main__':
 
                     # start the Left Left - Right Right pattern to explore the room.
                     # The drone turns 90 degrees every time it is close to as wall and then flies for a certain pre determined distance before turning again (same direction as before)
-                    
+
                     #Initialize switch direction
-		    if multiranger.right < multiranger.left:
-			switch = "next_is_left"
-		    else:
-			switch = "next_is_right"
-                        
+                    if multiranger.right < multiranger.left:
+                    switch = "next_is_left"
+                    else:
+                    switch = "next_is_right"
+
                     while not target_is_found():
                         # safety method to stop the drone by holding a hand above it.
                         if is_close(multiranger.up):
@@ -274,4 +274,3 @@ if __name__ == '__main__':
                     # TODO add a method to check the battery life. If the battery is too low, then the drone has to land before it crashes by itself because of the empty battery.
 
                     print('Demo terminated!')
-
