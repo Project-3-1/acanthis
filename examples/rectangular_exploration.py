@@ -214,9 +214,9 @@ if __name__ == '__main__':
 
                     #Initialize switch direction
                     if multiranger.right < multiranger.left:
-                    switch = "next_is_left"
+                        switch = "next_is_left"
                     else:
-                    switch = "next_is_right"
+                        switch = "next_is_right"
 
                     while not target_is_found():
                         # safety method to stop the drone by holding a hand above it.
