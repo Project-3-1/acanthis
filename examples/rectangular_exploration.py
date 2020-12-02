@@ -78,7 +78,7 @@ if __name__ == '__main__':
         with MotionCommander(scf,0.3) as motion_commander:
             with Multiranger(scf) as multiranger:
                 keep_flying = True
-                ranges = ["front","left","right","back"]
+                ranges = ["front", "left", "right", "back"]
                 switch = "next_is_right"
                 HEIGHT = 0.3  # meter
                 VELOCITY = 0.1
@@ -91,33 +91,41 @@ if __name__ == '__main__':
 
                 # TODO, if the target is already in the field of vision of the quadcopter, then the drone should enter the following_target step already and not try to find the 1st wall. We need to check for the target after every step of the algo !!!
 
-                ########################
-                # First starting technique: Doesn't check the surroundings when hovering after the take off. It goes straight
+
                 time.sleep(3)
                 while(keep_flying):
+
+                    """
+                    ########################
+                    # First starting technique: Doesn't check the surroundings when hovering after the take off. It goes straight
                     motion_commander.start_forward(VELOCITY)
                     ########################
+                    """
 
-                    """"
                     ########################
-                    # second starting technique: Check once if there is any obstacle around the drone. If yes, it will move to this obstacle without yawing.
+                    # second starting technique: Check once if there is any obstacle around the drone. If yes, it will move to this obstacle with yawing.
                     for range in ranges:
-                        if is_in_range(range):
-                            if is_close(range):
+                        if is_in_range(getattr(motion_commander, range)()):
+                            if is_close(getattr(motion_commander, range)()):
                                 motion_commander.stop()
                             else:
                                 if range == "front":
                                     motion_commander.start_forward(VELOCITY)
                                 elif range == "back":
+                                    motion_commander.turn_left(180)
                                     motion_commander.start_back(VELOCITY)
                                 elif range == "right":
+                                    motion_commander.turn_right(90)
+                                    motion_commander.stop()
                                     motion_commander.start_right(VELOCITY)
                                 elif range == "left":
+                                    motion_commander.turn_left(90)
+                                    motion_commander.stop()
                                     motion_commander.start_left(VELOCITY)
                         else:
                             motion_commander.start_forward(VELOCITY)
                     #####################
-                    """
+
 
                     """"
                     ########################
