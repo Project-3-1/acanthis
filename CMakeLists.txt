@@ -13,6 +13,7 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   message_generation
   crazyflie_driver
+  OpenCV
 )
 
 ## System dependencies are found with CMake's conventions
@@ -118,8 +119,9 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  ${catkin_INCLUDE_DIRS}
-  acanthis
+        acanthis
+        ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
   #crazyflie_driver
 )
 
@@ -211,5 +213,7 @@ add_library(${PROJECT_NAME}
 
 
 add_executable(FlyRectangleDemo src/FlyRectangleDemo.cpp)
+add_executable(ArucoDetector src/ArucoDetector.cpp)
 target_link_libraries(FlyRectangleDemo ${catkin_LIBRARIES} acanthis)
+target_link_libraries(ArucoDetector ${catkin_LIBRARIES} acanthis ${OpenCV_LIBS})
 #add_dependencies(talker beginner_tutorials_generate_messages_cpp)

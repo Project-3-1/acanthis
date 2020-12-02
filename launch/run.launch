@@ -2,7 +2,7 @@
 <launch>
     <arg name="uri" default="radio://0/80/2M" />
     <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch" />
-    <group ns="crazyflie">
+    <group if="false" ns="crazyflie">
         <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
             <param name="uri" value="$(arg uri)" />
             <param name="tf_prefix" value="crazyflie" />
@@ -25,37 +25,10 @@
         </node>
 
     </group>
-    <group if="true" ns="acanthis">
-        <node name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
-    </group>
-    <group if="false" ns="camera">
-        <node pkg="video_stream_opencv" type="video_stream" name="camera_stream" output="screen">
-            <remap from="camera" to="image_raw" />
-            <param name="camera_name" type="string" value="camera" />
-            <param name="video_stream_provider" type="string" value="0" />
-            <param name="set_camera_fps" type="double" value="60" />
-            <param name="buffer_queue_size" type="int" value="1" />
-            <param name="fps" type="double" value="60" />
-            <param name="frame_id" type="string" value="camera" />
-            <param name="start_frame" type="int" value="0" />
-            <param name="stop_frame" type="int" value="-1" />
-            <param name="width" type="int" value="0" />
-            <param name="height" type="int" value="0" />
-        </node>
-        <node if="false" name="camera_image_view" pkg="image_view" type="image_view">
-            <remap from="image" to="image_raw" />
-        </node>
-        <arg name="marker_size" default="4.4" />
-        <arg name="max_new_marker_error" default="0.08" />
-        <arg name="max_track_error" default="0.2" />
-        <arg name="output_frame" default="/camera" />
-        <node name="ar_track_alvar" pkg="ar_track_alvar" type="individualMarkersNoKinect" respawn="false" output="screen">
-            <param name="marker_size" type="double" value="$(arg marker_size)" />
-            <param name="max_new_marker_error" type="double" value="$(arg max_new_marker_error)" />
-            <param name="max_track_error" type="double" value="$(arg max_track_error)" />
-            <param name="output_frame" type="string" value="$(arg output_frame)" />
-            <remap from="camera_image" to="/camera/image_raw" />
-            <remap from="camera_info" to="/camera/camera_info" />
+    <group ns="acanthis">
+        <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
+        <node name="ArucoDetector" pkg="acanthis" type="ArucoDetector" output="screen">
+            <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
         </node>
     </group>
 </launch>

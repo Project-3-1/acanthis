@@ -11,9 +11,9 @@ int main(int argc, char **argv) {
     FlightController controller(node, 100);
 
     controller.arm_drone();
-    controller.takeoff(0.3);
-
-    controller.move_until_object(Direction::FORWARD, 1);
+    controller.takeoff(1.5);
+    controller.hover(5);
+    //controller.move_until_object(Direction::FORWARD, 1);
     /*controller.move_relative(1, 0, 0, 0);
     controller.move_relative(0, 0, 0, 90);
     controller.move_relative(0, 1, 0, 0);
