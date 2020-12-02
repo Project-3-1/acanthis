@@ -75,13 +75,13 @@ if __name__ == '__main__':
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf=cf) as scf:
         # 1. Takes off (1st step) when the commander is created. Hovers at 1 m
-        with MotionCommander(scf,0.3) as motion_commander:
+        with MotionCommander(scf,0.5) as motion_commander:
             with Multiranger(scf) as multiranger:
                 keep_flying = True
                 ranges = ["front","left","right","back"]
-                switch = "next_is_left"
+                switch = "next_is_right"
                 HEIGHT = 0.5  # meter
-                VELOCITY = 0.05
+                VELOCITY = 0.1
                 field_of_view = 0.5
                 distance_parallel_to_wall_btw_turns = 0.2
                 is_parallel_to_first_wall = False
@@ -153,11 +153,11 @@ if __name__ == '__main__':
                         if is_close(multiranger.front):
                             motion_commander.stop()
                             # correct the height if necessary
-                            difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
-                            if difference_of_height_btw_desired_and_actual > 0.1:
-                                motion_commander.up(difference_of_height_btw_desired_and_actual,VELOCITY)
-                            if difference_of_height_btw_desired_and_actual < -0.1:
-                                motion_commander.down(-difference_of_height_btw_desired_and_actual,VELOCITY)
+                            # difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
+                            # if difference_of_height_btw_desired_and_actual > 0.05:
+                            #     motion_commander.up(difference_of_height_btw_desired_and_actual,VELOCITY)
+                            # if difference_of_height_btw_desired_and_actual < -0.05:
+                            #     motion_commander.down(-difference_of_height_btw_desired_and_actual,VELOCITY)
 
                             front_distance = multiranger.front
                             right_distance = multiranger.right
@@ -169,8 +169,9 @@ if __name__ == '__main__':
                                 # turn left and be parallel to the wall
                                 motion_commander.turn_left(angle_to_yaw)
                                 first_wall_is_found = True
+                                angle_to_yaw_radians = math.radians(angle_to_yaw)
                                 # check whether the drone is // or not by checking the right distance between the drone and the wall
-                                if multiranger.right == (right_distance * math.sin(angle_to_yaw) + 0.1) or multiranger.right == (right_distance * math.sin(angle_to_yaw) - 0.1):
+                                if multiranger.right == (right_distance * math.sin(angle_to_yaw_radians) + 0.1) or multiranger.right == (right_distance * math.sin(angle_to_yaw) - 0.1):
                                     is_parallel_to_first_wall = True
 
                             # if there is an obstacle closer to the drone on the left side than on the left side
@@ -180,8 +181,9 @@ if __name__ == '__main__':
                                 # turn right and be parallel to the wall
                                 motion_commander.turn_right(angle_to_yaw)
                                 first_wall_is_found = True
+                                angle_to_yaw_radians = math.radians(angle_to_yaw)
                                 # check whether the drone is // or not by checking the right distance between the drone and the wall
-                                if multiranger.left == (left_distance * math.sin(angle_to_yaw) + 0.1) or multiranger.left == (left_distance * math.sin(angle_to_yaw) - 0.1):
+                                if multiranger.left == (left_distance * math.sin(angle_to_yaw_radians) + 0.1) or multiranger.left == (left_distance * math.sin(angle_to_yaw) - 0.1):
                                     is_parallel_to_first_wall = True
 
                             # In case the left and right distances are equal or if the distance is smaller than 1m, then it will turn 90 degrees in a random direction (left or right)
@@ -192,13 +194,14 @@ if __name__ == '__main__':
                                 else:
                                     motion_commander.turn_right(90)
                                 first_wall_is_found = True
+                            # TODO add the corner case
 
                     # correct the height if necessary
-                    difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
-                    if difference_of_height_btw_desired_and_actual > 0.1:
-                        motion_commander.up(difference_of_height_btw_desired_and_actual, VELOCITY)
-                    if difference_of_height_btw_desired_and_actual < -0.1:
-                        motion_commander.down(-difference_of_height_btw_desired_and_actual, VELOCITY)
+                    # difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
+                    # if difference_of_height_btw_desired_and_actual > 0.05:
+                    #     motion_commander.up(difference_of_height_btw_desired_and_actual, VELOCITY)
+                    # if difference_of_height_btw_desired_and_actual < -0.05:
+                    #     motion_commander.down(-difference_of_height_btw_desired_and_actual, VELOCITY)
 
                     # The next step is to fly parallel to the wall. The quadcopter has now been rotated and the front is pointing parallel to the encountered wall.
                     if not is_close(multiranger.front):
@@ -215,11 +218,11 @@ if __name__ == '__main__':
                         # TODO add another command to set keepflying to false
 
                         # correct the height if necessary
-                        difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
-                        if difference_of_height_btw_desired_and_actual > 0.1:
-                            motion_commander.up(difference_of_height_btw_desired_and_actual, VELOCITY)
-                        if difference_of_height_btw_desired_and_actual < -0.1:
-                            motion_commander.down(-difference_of_height_btw_desired_and_actual, VELOCITY)
+                        # difference_of_height_btw_desired_and_actual = HEIGHT - motion_commander.get_height()
+                        # if difference_of_height_btw_desired_and_actual > 0.05:
+                        #     motion_commander.up(difference_of_height_btw_desired_and_actual, VELOCITY)
+                        # if difference_of_height_btw_desired_and_actual < -0.05:
+                        #     motion_commander.down(-difference_of_height_btw_desired_and_actual, VELOCITY)
 
                         if is_close(multiranger.front):
                             motion_commander.stop()
