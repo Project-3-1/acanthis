@@ -8,11 +8,13 @@ add_compile_options(-std=c++11)
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
 ## is used, also find other catkin packages
 find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
-  message_generation
-  crazyflie_driver
+    roscpp
+    rospy
+    std_msgs
+    message_generation
+    crazyflie_driver
+    OpenCV
+    cv_bridge
 )
 
 ## System dependencies are found with CMake's conventions
@@ -49,12 +51,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##   * add every package in MSG_DEP_SET to generate_messages(DEPENDENCIES ...)
 
 ## Generate messages in the 'msg' folder
-#add_message_files(
-#  FILES
-  # Emergency:
-  # Exploration
-  # State Manager
-#)
+add_message_files(
+    FILES
+    ArucoPose.msg
+)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -70,8 +70,9 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate added messages and services with any dependencies listed here
 generate_messages(
-   DEPENDENCIES
-   std_msgs
+        DEPENDENCIES
+        std_msgs
+        geometry_msgs
 )
 
 ################################################
@@ -104,11 +105,11 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-#  INCLUDE_DIRS include
-#  LIBRARIES acanthis
-#  CATKIN_DEPENDS roscpp rospy std_msgs
-#  DEPENDS system_lib
-  CATKIN_DEPENDS message_runtime crazyflie_driver
+        #  INCLUDE_DIRS include
+        #  LIBRARIES acanthis
+        #  CATKIN_DEPENDS roscpp rospy std_msgs
+        #  DEPENDS system_lib
+        CATKIN_DEPENDS message_runtime crazyflie_driver
 )
 
 ###########
@@ -118,16 +119,17 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 include_directories(
-  ${catkin_INCLUDE_DIRS}
-  acanthis
-  #crazyflie_driver
+        acanthis
+        ${catkin_INCLUDE_DIRS}
+        ${OpenCV_INCLUDE_DIRS}
+        #crazyflie_driver
 )
 
 
 ## Declare a C++ library
 add_library(${PROJECT_NAME}
-   src/flightcontroller.cpp
-)
+        src/flightcontroller.cpp
+        )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
@@ -211,5 +213,7 @@ add_library(${PROJECT_NAME}
 
 
 add_executable(FlyRectangleDemo src/FlyRectangleDemo.cpp)
+add_executable(aruco_detector src/ArucoDetector.cpp)
 target_link_libraries(FlyRectangleDemo ${catkin_LIBRARIES} acanthis)
+target_link_libraries(aruco_detector ${catkin_LIBRARIES} acanthis ${OpenCV_LIBS})
 #add_dependencies(talker beginner_tutorials_generate_messages_cpp)
