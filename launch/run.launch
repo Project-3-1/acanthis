@@ -1,10 +1,19 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
-    <arg name="uri" default="radio://0/80/2M" />
+    <group ns="acanthis">
+        <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
+        <node name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
+            <param name="marker_size" value="0.05" />
+            <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
+            <param name="camera" value="/dev/video2" />
+            <param name="publish_debug_image" value="true" />
+        </node>
+    </group>
+
     <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch" />
     <group if="false" ns="crazyflie">
         <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
-            <param name="uri" value="$(arg uri)" />
+            <param name="uri" value="radio://0/80/2M" />
             <param name="tf_prefix" value="crazyflie" />
             <param name="roll_trim" value="0" />
             <param name="pitch_trim" value="0" />
@@ -22,13 +31,6 @@
                 genericLogTopicFrequencies: [25]
                 genericLogTopic_ranger_deck_Variables: ["range.front", "range.right", "range.back", "range.left", "range.up"]
             </rosparam>
-        </node>
-
-    </group>
-    <group ns="acanthis">
-        <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
-        <node name="ArucoDetector" pkg="acanthis" type="ArucoDetector" output="screen">
-            <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
         </node>
     </group>
 </launch>
