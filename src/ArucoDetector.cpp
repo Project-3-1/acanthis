@@ -1,5 +1,7 @@
 #include "ros/ros.h"
 
+#include "flightcontroller.h"
+
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/highgui.hpp>
@@ -13,7 +15,7 @@
 
 using namespace std;
 using namespace cv;
-const int DICTIONARY = aruco::DICT_6X6_50;
+const int DICTIONARY = aruco::DICT_5X5_50;
 
 static bool readCameraParameters(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
 {
@@ -22,6 +24,8 @@ static bool readCameraParameters(const std::string& filename, Mat& camMatrix, Ma
         return false;
     fs["camera_matrix"] >> camMatrix;
     fs["distortion_coefficients"] >> distCoeffs;
+    cout << "camera_matrix = " << endl << " "  << camMatrix << endl << endl;
+    cout << "distortion_coefficients = " << endl << " "  << distCoeffs << endl << endl;
     return true;
 }
 
@@ -29,6 +33,8 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "aruco_detector");
     ros::NodeHandle node("~");
     ros::Rate rate(60);
+
+    ROS_WARN("dictionary id: %d", DICTIONARY);
 
     // --- config
     string filename;
@@ -52,19 +58,29 @@ int main(int argc, char **argv) {
     bool publish_debug_image = false;
     node.getParam("publish_debug_image", publish_debug_image);
 
+    double camera_rotation = -90 * DEG_TO_RAD; //TODO make the position of the camera configurable
+    /*Mat z_rotation = (Mat_<double>(3,3) <<
+                        cos(camera_rotation), -sin(camera_rotation), 0,
+                        sin(camera_rotation), cos(camera_rotation),  0,
+                        0, 0, 1);*/
+
     // --- publisher
     ros::Publisher pose_pub = node.advertise<acanthis::ArucoPose>("pose", 1);
+
+    ros::Publisher raw_image_pub = node.advertise<sensor_msgs::Image>("image/raw", 1);
+    sensor_msgs::ImagePtr raw_image_msg;
 
     ros::Publisher debug_image_pub;
     sensor_msgs::ImagePtr debug_image_msg;
     if(publish_debug_image) {
-        debug_image_pub = node.advertise<sensor_msgs::Image>("image", 1);
+        debug_image_pub = node.advertise<sensor_msgs::Image>("image/debug", 1);
     }
 
     // --- message
     acanthis::ArucoPose marker_pose_msg;
     marker_pose_msg.header.seq = 0;
     marker_pose_msg.header.stamp = ros::Time::now();
+
 
     // --- TODO
     VideoCapture inputVideo(camera_name, CAP_V4L2);
@@ -74,7 +90,7 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Mat cameraMatrix, distCoeffs;
+    Mat cameraMatrix, distCoeffs, distCoeffsStdDev;
     bool readOk = readCameraParameters(filename, cameraMatrix, distCoeffs);
     if (!readOk) {
         ROS_ERROR("Failed to read camera calibration file");
@@ -85,8 +101,9 @@ int main(int argc, char **argv) {
         Ptr<aruco::DetectorParameters> params = aruco::DetectorParameters::create();
 
         while (ros::ok() && inputVideo.grab()) {
-            Mat image;
+            Mat image, original_image;
             inputVideo.retrieve(image);
+            image.copyTo(original_image);
 
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
@@ -105,7 +122,7 @@ int main(int argc, char **argv) {
 
                     for (int i = 0; i < markerIds.size(); i++) {
                         //Vec<double,3> rvec = rvecs[i];
-                        Vec<double,3> tvec = tvecs[i];
+                        auto tvec = tvecs[i]; // TODO check that the rotation matrix works
 
                         marker_pose_msg.header.seq++;
                         marker_pose_msg.header.stamp = ros::Time::now();
@@ -122,9 +139,14 @@ int main(int argc, char **argv) {
             }
 
             if(publish_debug_image) {
-                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+                cv::Mat undistorted;
+                cv::undistort(image, undistorted, cameraMatrix, distCoeffs);
+                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", undistorted).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
+
+            raw_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", original_image).toImageMsg();
+            raw_image_pub.publish(raw_image_msg);
 
             ros::spinOnce();
             rate.sleep();

@@ -3,7 +3,7 @@
     <group ns="acanthis">
         <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
         <node name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
-            <param name="marker_size" value="0.05" />
+            <param name="marker_size" value="0.197" />
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
             <param name="camera" value="/dev/video2" />
             <param name="publish_debug_image" value="true" />
