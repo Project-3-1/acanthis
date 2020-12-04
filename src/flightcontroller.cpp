@@ -94,6 +94,22 @@ double FlightController::get_distance_measurement(Direction direction) {
     }
     return range_measurements[direction] * MM_TO_M;
 }
+/**
+ * @param directions
+ * @return closest of given directions
+ */
+Direction FlightController::get_closest_direction(Direction directions []){
+    double min = range_measurements[directions[0]];
+    Direction dir = directions[0];
+    for(int i=1; i<sizeof(directions);i++){
+        if(min>range_measurements[directions[i]]) {
+            min=range_measurements[directions[i]];
+            dir = directions[i];
+        }
+    }
+    return dir;
+}
+
 
 /**
  * Hovers in place for the specified amount of time
@@ -118,6 +134,15 @@ void FlightController::hover(double time) {
  * @param min_distance In metres
  */
 void FlightController::move_until_object(Direction direction, double min_distance) {
+    double delta_distance = get_distance_measurement(direction) - min_distance;
+    move_in_direction(direction,delta_distance);
+}
+/**
+ * Moves the specified distance in the specified direction
+ * @param direction
+ * @param distance
+ */
+void FlightController::move_in_direction(Direction direction, double distance) {
     double x = 0;
     double y = 0;
     double z = 0;
@@ -144,7 +169,7 @@ void FlightController::move_until_object(Direction direction, double min_distanc
             break;
     }
 
-    double delta_distance = get_distance_measurement(direction) - min_distance;
+    double delta_distance = distance;
     ROS_INFO("DELTA_DISTANCE %f", delta_distance);
     if(delta_distance > 0) {
         move_relative(x * delta_distance, y * delta_distance, z * delta_distance, 0);

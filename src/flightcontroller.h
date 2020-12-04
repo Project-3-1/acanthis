@@ -38,11 +38,13 @@ public:
     void move_absolute(double x, double y, double z, int yaw);
     void move_relative(double x, double y, double z, int yaw);
 
-    void move_until_object(Direction direction, double distance);
+    void move_until_object(Direction direction, double min_distance);
+    void move_in_direction(Direction direction, double distance);
     void turn_left();
     void turn_right();
 
     double get_distance_measurement(Direction direction);
+    Direction get_closest_direction(Direction directions []);
 
     void takeoff(float height);
     void land();
