@@ -95,22 +95,19 @@ double FlightController::get_distance_measurement(Direction direction) {
     return range_measurements[direction] * MM_TO_M;
 }
 /**
- * Returns the Closest Direction (Excluding UP and DOWN)
- * Default is LEFT
+ * @param directions
+ * @return closest of given directions
  */
-Direction FlightController::get_closest_direction(){
-    double max = range_measurements[Direction::LEFT];
-    int pos = Direction::LEFT;
-    for(int i=0; i<sizeof(range_measurements); i++) {
-        if(i == Direction::DOWN || i == Direction::UP){
-            continue;
-        }
-        if(max<range_measurements[i]) {
-            max=range_measurements[i];
-            pos = i;
+Direction FlightController::get_closest_direction(Direction directions []){
+    double min = range_measurements[directions[0]];
+    Direction dir = directions[0];
+    for(int i=1; i<sizeof(directions);i++){
+        if(min>range_measurements[directions[i]]) {
+            min=range_measurements[directions[i]];
+            dir = directions[i];
         }
     }
-    return static_cast<Direction>(pos);
+    return dir;
 }
 
 
@@ -140,7 +137,11 @@ void FlightController::move_until_object(Direction direction, double min_distanc
     double delta_distance = get_distance_measurement(direction) - min_distance;
     move_in_direction(direction,delta_distance);
 }
-
+/**
+ * Moves the specified distance in the specified direction
+ * @param direction
+ * @param distance
+ */
 void FlightController::move_in_direction(Direction direction, double distance) {
     double x = 0;
     double y = 0;

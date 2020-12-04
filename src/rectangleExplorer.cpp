@@ -29,7 +29,8 @@ void RectangleExplorer::explore() {
     controller.arm_drone();
     controller.takeoff(hoverHeight);
     // Find Closest Wall
-    Direction closest = controller.get_closest_direction();
+    Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
+    Direction closest = controller.get_closest_direction(directions);
     //Move To It
     controller.move_until_object(closest,minDist);
     //Get Directions between which we move
@@ -63,6 +64,6 @@ Direction RectangleExplorer::negate_dir(Direction dir){
         case UP: return DOWN;
         case DOWN: return UP;
     }
-    ROS_WARN("UNKNOWN DIRECTION ::  in negate_dir");
+    ROS_WARN("UNKNOWN DIRECTION :: in negate_dir");
     return LEFT;
 }
