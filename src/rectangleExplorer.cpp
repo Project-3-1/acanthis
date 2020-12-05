@@ -2,10 +2,10 @@
 #include "flightcontroller.h"
 #include "ros/node_handle.h"
 
-ros::NodeHandle node;
+FlightController* controller;
 
 RectangleExplorer::RectangleExplorer(ros::NodeHandle n, double freqency) {
-    node = n;
+    *controller = FlightController(n, freqency);
     this->hoverHeight = 0.5;
     this->minDist = 0.3;
     this->waySize = 0.3;
@@ -24,15 +24,14 @@ void RectangleExplorer::turn_at_wall(Direction direction) {
 }
 
 void RectangleExplorer::explore() {
-    FlightController controller(node, freqency);
     // Start and hover at height
-    controller.arm_drone();
-    controller.takeoff(hoverHeight);
+    controller->arm_drone();
+    controller->takeoff(hoverHeight);
     // Find Closest Wall
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
-    Direction closest = controller.get_closest_direction(directions);
+    Direction closest = controller->get_closest_direction(directions);
     //Move To It
-    controller.move_until_object(closest,minDist);
+    controller->move_until_object(closest,minDist);
     //Get Directions between which we move
     Direction dir1 = LEFT;
     Direction dir2 = RIGHT;
@@ -40,10 +39,10 @@ void RectangleExplorer::explore() {
     Direction goTo = negate_dir(closest);
     // Do Exploration
     while (ros::ok()){
-        controller.move_until_object(dir1,minDist);
-        controller.move_in_direction(goTo,waySize);
-        controller.move_until_object(dir2,minDist);
-        controller.move_in_direction(goTo,waySize);
+        controller->move_until_object(dir1,minDist);
+        controller->move_in_direction(goTo,waySize);
+        controller->move_until_object(dir2,minDist);
+        controller->move_in_direction(goTo,waySize);
     }
 }
 
