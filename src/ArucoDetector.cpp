@@ -15,9 +15,8 @@
 
 using namespace std;
 using namespace cv;
-const int DICTIONARY = aruco::DICT_5X5_50;
 
-static bool readCameraParameters(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
+static bool read_calibration(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
 {
     FileStorage fs(filename, FileStorage::READ);
     if (!fs.isOpened())
@@ -29,12 +28,25 @@ static bool readCameraParameters(const std::string& filename, Mat& camMatrix, Ma
     return true;
 }
 
+static int get_dictionary(int value) {
+    if(value == 4) {
+        return cv::aruco::DICT_4X4_50;
+    } else if(value == 5) {
+        return cv::aruco::DICT_5X5_50;
+    } else if(value == 6) {
+        return cv::aruco::DICT_6X6_50;
+    } else if(value == 7) {
+        return cv::aruco::DICT_7X7_50;
+    } else {
+        ROS_ERROR("INVALID DICTIONARY SIZE (%d) pick: 4, 5, 6, or 7.", value);
+        return -1;
+    }
+}
+
 int main(int argc, char **argv) {
     ros::init(argc, argv, "aruco_detector");
     ros::NodeHandle node("~");
     ros::Rate rate(60);
-
-    ROS_WARN("dictionary id: %d", DICTIONARY);
 
     // --- config
     string filename;
@@ -52,6 +64,16 @@ int main(int argc, char **argv) {
     string camera_name;
     if(!node.getParam("camera", camera_name)) {
         ROS_ERROR("Camera path missing.");
+        return 1;
+    }
+
+    int dictionary_size;
+    if(!node.getParam("dictionary", dictionary_size)) {
+        ROS_ERROR("Dictionary id is missing (4, 5, 6, 7).");
+        return 1;
+    }
+    const int DICTIONARY = get_dictionary(dictionary_size);
+    if(DICTIONARY == -1) {
         return 1;
     }
 
@@ -91,7 +113,7 @@ int main(int argc, char **argv) {
     }
 
     Mat cameraMatrix, distCoeffs, distCoeffsStdDev;
-    bool readOk = readCameraParameters(filename, cameraMatrix, distCoeffs);
+    bool readOk = read_calibration(filename, cameraMatrix, distCoeffs);
     if (!readOk) {
         ROS_ERROR("Failed to read camera calibration file");
         return 1;

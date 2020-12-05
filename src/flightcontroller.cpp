@@ -355,7 +355,7 @@ void FlightController::_wait_for_pose_subscription() {
             }
 
             //TODO
-           if((change / checks) > 0.1) {
+           if((change / checks) > 0.1 || (change / checks) == 0) {
                 ROS_ERROR("FlightController: /crazyflie/pose reports high variability (%.2fcm) when we expected to "
                           "be stationary.", (change / checks));
                 ROS_ASSERT(false);
