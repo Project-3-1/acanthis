@@ -90,10 +90,23 @@ void FlightController::stop() {
 
 double FlightController::get_distance_measurement(Direction direction) {
     if(direction == Direction::DOWN) { // special case
-        return pose.position.z;
+        return get_z();
     }
     return range_measurements[direction] * MM_TO_M;
 }
+
+double FlightController::get_x() {
+    return pose.position.x;
+}
+
+double FlightController::get_y() {
+    return pose.position.y;
+}
+
+double FlightController::get_z() {
+    return pose.position.z;
+}
+
 /**
  * @param directions
  * @return closest of given directions
@@ -208,8 +221,8 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
-    const double max_x = 0.6; // in m/s
-    const double max_y = 0.6; // in m/s
+    const double max_x = 0.15; // in m/s
+    const double max_y = 0.15; // in m/s
     const double max_z = 0.2; // in m/s
     const double max_yaw = 45; // in deg/s
 
@@ -397,7 +410,7 @@ void FlightController::_wait_for_ranger_subscription() {
                 rate.sleep();
             }
 
-            if((change / checks) == 0) {
+            if((change / checks) == 0 && false) {
                 ROS_ERROR("FlightController: /crazyflie/ranger_deck not updating");
                 ROS_ASSERT(false);
             } else {

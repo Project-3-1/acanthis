@@ -7,16 +7,31 @@
 #include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
 
+#include "acanthis/ArucoPose.h"
+
+enum State {
+    EXPLORATION,
+    TRACKING,
+    DONE
+};
 
 class RectangleExplorer {
+    State state = EXPLORATION;
+
+    ros::NodeHandle& node;
+    FlightController controller;
+
+    ros::Subscriber aruco_pose_sub;
+
+    acanthis::ArucoPose arucoPose;
+
     float hoverHeight;
     double minDist;
     double waySize;
     double distMoved;
     bool inFirstLoop;
-    FlightController& controller;
 public:
-    RectangleExplorer(FlightController& controller);
+    RectangleExplorer(ros::NodeHandle& node, double frequency);
     void explore();
 
 private:
@@ -26,6 +41,8 @@ private:
     void get_relative_left_right(Direction current, Direction& d1, Direction& d2);
     Direction negate_dir(Direction dir);
     void move_in_dir(Direction dir);
+
+    void _update_aruco_poe(acanthis::ArucoPose& pose);
 };
 
 #endif //SRC_RECTANGLEEXPLORER_H

@@ -1,11 +1,23 @@
 #include "rectangleExplorer.h"
 
-#include <utility>
 #include "flightcontroller.h"
 #include "ros/node_handle.h"
 
-RectangleExplorer::RectangleExplorer(FlightController& controller)
-        : controller(controller) {
+#include "acanthis/ArucoPose.h"
+
+RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
+    : controller(FlightController(node, frequency)), node(node) {
+
+    // ---
+    ros::Rate rate(2);
+    this->aruco_pose_sub = node.subscribe("/acanthis/aruco_detector/pose", 1, &RectangleExplorer::_update_aruco_poe, this);
+    while (this->aruco_pose_sub.getNumPublishers() == 0) {
+        ROS_INFO("wait for aruco pose");
+        rate.sleep();
+    }
+    ROS_INFO("pose arrived");
+    // ---
+
     this->hoverHeight = 0.35;
     this->minDist = 0.3;
     this->waySize = 0.5;
@@ -43,7 +55,7 @@ void RectangleExplorer::explore() {
     get_relative_left_right(closest,dir1,dir2);
     Direction goTo = negate_dir(closest);
     // Do Exploration
-    while (ros::ok() && inFirstLoop){
+    while (ros::ok() && inFirstLoop && state == EXPLORATION){
         controller.move_until_object(dir1,minDist);
         move_in_dir(goTo);
         if(!inFirstLoop){
@@ -51,6 +63,26 @@ void RectangleExplorer::explore() {
         }
         controller.move_until_object(dir2,minDist);
         move_in_dir(goTo);
+
+        ros::spinOnce();
+    }
+
+    // euclidian distance to marker
+    double error = sqrt(pow(controller.get_x() - arucoPose.position.x, 2)
+            + pow(controller.get_y() - arucoPose.position.y, 2));
+    while (ros::ok() && state == TRACKING) {
+
+        if(error > 0.1) { //10[cm]
+            controller.move_relative(arucoPose.position.x, arucoPose.position.y, 0, 0);
+            error = sqrt(pow(controller.get_x() - arucoPose.position.x, 2)
+                         + pow(controller.get_y() - arucoPose.position.y, 2));
+        } else {
+            state = DONE;
+            controller.land();
+            break;
+        }
+
+        ros::spinOnce();
     }
 }
 
@@ -86,4 +118,12 @@ void RectangleExplorer::move_in_dir(Direction dir) {
     }
     controller.move_in_direction(dir,waySize);
     distMoved = distMoved + waySize;
+}
+
+void RectangleExplorer::_update_aruco_poe(acanthis::ArucoPose &pose) {
+    if(this->state == EXPLORATION) {
+        this->state = TRACKING;
+    } else if(this->state == TRACKING) {
+        this->arucoPose = pose;
+    }
 }
