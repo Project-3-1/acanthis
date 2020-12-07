@@ -10,7 +10,7 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
 
     // ---
     ros::Rate rate(2);
-    this->aruco_pose_sub = node.subscribe("/acanthis/aruco_detector/pose", 1, &RectangleExplorer::_update_aruco_poe, this);
+    this->aruco_pose_sub = node.subscribe("/acanthis/aruco_detector/pose", 1, &RectangleExplorer::_update_aruco_pose, this);
     while (this->aruco_pose_sub.getNumPublishers() == 0) {
         ROS_INFO("wait for aruco pose");
         rate.sleep();
@@ -67,15 +67,15 @@ void RectangleExplorer::explore() {
         ros::spinOnce();
     }
 
-    // euclidian distance to marker
-    double error = sqrt(pow(controller.get_x() - arucoPose.position.x, 2)
-            + pow(controller.get_y() - arucoPose.position.y, 2));
+    /*// euclidian distance to marker
+    double error = sqrt(pow(controller.get_x() - arucoPose.x, 2)
+            + pow(controller.get_y() - arucoPose.y, 2));
     while (ros::ok() && state == TRACKING) {
 
         if(error > 0.1) { //10[cm]
-            controller.move_relative(arucoPose.position.x, arucoPose.position.y, 0, 0);
-            error = sqrt(pow(controller.get_x() - arucoPose.position.x, 2)
-                         + pow(controller.get_y() - arucoPose.position.y, 2));
+            controller.move_relative(arucoPose.x, arucoPose.y, 0, 0);
+            error = sqrt(pow(controller.get_x() - arucoPose.x, 2)
+                         + pow(controller.get_y() - arucoPose.y, 2));
         } else {
             state = DONE;
             controller.land();
@@ -83,7 +83,7 @@ void RectangleExplorer::explore() {
         }
 
         ros::spinOnce();
-    }
+    }*/
 }
 
 void RectangleExplorer::get_relative_left_right(Direction lastDir, Direction& d1, Direction& d2){
@@ -120,10 +120,10 @@ void RectangleExplorer::move_in_dir(Direction dir) {
     distMoved = distMoved + waySize;
 }
 
-void RectangleExplorer::_update_aruco_poe(acanthis::ArucoPose &pose) {
+void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& pose) {
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
     } else if(this->state == TRACKING) {
-        this->arucoPose = pose;
+        //this->arucoPose = pose->position;
     }
 }

@@ -80,12 +80,6 @@ int main(int argc, char **argv) {
     bool publish_debug_image = false;
     node.getParam("publish_debug_image", publish_debug_image);
 
-    double camera_rotation = -90 * DEG_TO_RAD; //TODO make the position of the camera configurable
-    Mat z_rotation = (Mat_<double>(3,3) <<
-                        cos(camera_rotation), -sin(camera_rotation), 0,
-                        sin(camera_rotation), cos(camera_rotation),  0,
-                        0, 0, 1);
-
     // --- publisher
     ros::Publisher pose_pub = node.advertise<acanthis::ArucoPose>("pose", 1);
 
@@ -125,6 +119,15 @@ int main(int argc, char **argv) {
         while (ros::ok() && inputVideo.grab()) {
             Mat image, original_image;
             inputVideo.retrieve(image);
+
+            // cutout circle
+
+            Mat mask = cv::Mat::zeros(cv::Size(image.cols, image.rows), image.type());
+            cv::circle(mask,cv::Point2i(320, 240), 240,cv::Scalar(255,255,255),
+                       -1);
+            cv::bitwise_and(image, mask, image);
+            //---
+
             image.copyTo(original_image);
 
             std::vector<int> markerIds;
@@ -162,9 +165,9 @@ int main(int argc, char **argv) {
             }
 
             if(publish_debug_image) {
-                cv::Mat undistorted;
-                cv::undistort(image, undistorted, cameraMatrix, distCoeffs);
-                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", undistorted).toImageMsg();
+                //cv::Mat undistorted;
+                //cv::undistort(image, undistorted, cameraMatrix, distCoeffs);
+                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
 

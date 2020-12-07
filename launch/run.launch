@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <group ns="acanthis">
-        <node if="true" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
+        <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
         <node if="true" name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
             <param name="marker_size" value="0.197" />
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
-            <param name="camera" value="/dev/video2" />
+            <param name="camera" value="/dev/video0" />
             <param name="publish_debug_image" value="true" />
             <param name="dictionary" value="4" />
         </node>
     </group>
 
     <include file="$(find crazyflie_driver)/launch/crazyflie_server.launch" />
-    <group if="true" ns="crazyflie">
+    <group if="false" ns="crazyflie">
         <node pkg="crazyflie_driver" type="crazyflie_add" name="crazyflie_add" output="screen">
             <param name="uri" value="radio://0/80/2M" />
             <param name="tf_prefix" value="crazyflie" />
