@@ -44,7 +44,7 @@ public:
     void turn_right();
 
     double get_distance_measurement(Direction direction);
-    Direction get_closest_direction(Direction directions []);
+    Direction get_closest_direction(const Direction directions []);
 
     void takeoff(float height);
     void land();

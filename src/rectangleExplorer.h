@@ -9,12 +9,12 @@
 
 
 class RectangleExplorer {
-    double freqency;
-    double hoverHeight;
+    float hoverHeight;
     double minDist;
     double waySize;
+    FlightController& controller;
 public:
-    RectangleExplorer(ros::NodeHandle n, double freqency);
+    RectangleExplorer(FlightController& controller);
     void explore();
 
 private:

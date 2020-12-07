@@ -81,10 +81,10 @@ int main(int argc, char **argv) {
     node.getParam("publish_debug_image", publish_debug_image);
 
     double camera_rotation = -90 * DEG_TO_RAD; //TODO make the position of the camera configurable
-    /*Mat z_rotation = (Mat_<double>(3,3) <<
+    Mat z_rotation = (Mat_<double>(3,3) <<
                         cos(camera_rotation), -sin(camera_rotation), 0,
                         sin(camera_rotation), cos(camera_rotation),  0,
-                        0, 0, 1);*/
+                        0, 0, 1);
 
     // --- publisher
     ros::Publisher pose_pub = node.advertise<acanthis::ArucoPose>("pose", 1);
@@ -144,16 +144,16 @@ int main(int argc, char **argv) {
 
                     for (int i = 0; i < markerIds.size(); i++) {
                         //Vec<double,3> rvec = rvecs[i];
-                        auto tvec = tvecs[i]; // TODO check that the rotation matrix works
+                        Mat tvec = tvecs[i] * z_rotation; // TODO check that the rotation matrix works
 
                         marker_pose_msg.header.seq++;
                         marker_pose_msg.header.stamp = ros::Time::now();
 
                         marker_pose_msg.marker_id = markerIds.at(i);
 
-                        marker_pose_msg.position.x = tvec[0];
-                        marker_pose_msg.position.y = tvec[1];
-                        marker_pose_msg.position.z = tvec[2];
+                        marker_pose_msg.position.x = tvec.at<double>(0);
+                        marker_pose_msg.position.y = tvec.at<double>(0);
+                        marker_pose_msg.position.z = tvec.at<double>(0);
 
                         pose_pub.publish(marker_pose_msg);
                     }

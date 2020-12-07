@@ -2,7 +2,7 @@
 <launch>
     <group ns="acanthis">
         <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
-        <node name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
+        <node if="true" name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
             <param name="marker_size" value="0.197" />
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
             <param name="camera" value="/dev/video2" />

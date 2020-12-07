@@ -98,12 +98,12 @@ double FlightController::get_distance_measurement(Direction direction) {
  * @param directions
  * @return closest of given directions
  */
-Direction FlightController::get_closest_direction(Direction directions []){
-    double min = range_measurements[directions[0]];
+Direction FlightController::get_closest_direction(const Direction directions[]){
+    double min = get_distance_measurement(directions[0]);
     Direction dir = directions[0];
-    for(int i=1; i<sizeof(directions);i++){
-        if(min>range_measurements[directions[i]]) {
-            min=range_measurements[directions[i]];
+    for(int i=1; i<sizeof(&directions)/sizeof(directions[0]);i++){
+        if(min>get_distance_measurement(directions[i])) {
+            min=get_distance_measurement(directions[i]);
             dir = directions[i];
         }
     }
@@ -153,13 +153,13 @@ void FlightController::move_in_direction(Direction direction, double distance) {
             x = 1;
             break;
         case RIGHT:
-            y = 1;
+            y = -1;
             break;
         case BACK:
             x = -1;
             break;
         case LEFT:
-            y = -1;
+            y = 1;
             break;
         case UP:
             z = 1;
@@ -277,11 +277,13 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     while (ros::ok()) {
         _publish_position(x, y, z, yaw);
         ros::spinOnce();
+
         double error = std::sqrt((std::pow(pose.position.x - x, 2) + std::pow(pose.position.y - y, 2)
                                   + std::pow(pose.position.z - z, 2)));
 
         double yaw_error = std::fmod(std::abs(_calculate_yaw(pose.orientation) - yaw), 360);
 
+        // error < 0.05[cm] && yaw_error <= 10[deg]
         if(error < 0.05 && yaw_error <= 10) {
             break;
         }
@@ -355,7 +357,7 @@ void FlightController::_wait_for_pose_subscription() {
             }
 
             //TODO
-           if((change / checks) > 0.1 || (change / checks) == 0) {
+           if((change / checks) > 0.1 /*|| (change / checks) == 0*/) {
                 ROS_ERROR("FlightController: /crazyflie/pose reports high variability (%.2fcm) when we expected to "
                           "be stationary.", (change / checks));
                 ROS_ASSERT(false);
