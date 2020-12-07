@@ -144,16 +144,17 @@ int main(int argc, char **argv) {
 
                     for (int i = 0; i < markerIds.size(); i++) {
                         //Vec<double,3> rvec = rvecs[i];
-                        Mat tvec = tvecs[i] * z_rotation; // TODO check that the rotation matrix works
+                        Vec<double,3> tvec = tvecs[i];
+                        //Mat tvec = tvecs[i] * z_rotation; // TODO check that the rotation matrix works
 
                         marker_pose_msg.header.seq++;
                         marker_pose_msg.header.stamp = ros::Time::now();
 
                         marker_pose_msg.marker_id = markerIds.at(i);
 
-                        marker_pose_msg.position.x = tvec.at<double>(0);
-                        marker_pose_msg.position.y = tvec.at<double>(0);
-                        marker_pose_msg.position.z = tvec.at<double>(0);
+                        marker_pose_msg.position.x = tvec[0] * -1;
+                        marker_pose_msg.position.y = tvec[1];
+                        marker_pose_msg.position.z = tvec[2];
 
                         pose_pub.publish(marker_pose_msg);
                     }
