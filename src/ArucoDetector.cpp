@@ -148,7 +148,6 @@ int main(int argc, char **argv) {
                     for (int i = 0; i < markerIds.size(); i++) {
                         //Vec<double,3> rvec = rvecs[i];
                         Vec<double,3> tvec = tvecs[i];
-                        //Mat tvec = tvecs[i] * z_rotation; // TODO check that the rotation matrix works
 
                         marker_pose_msg.header.seq++;
                         marker_pose_msg.header.stamp = ros::Time::now();

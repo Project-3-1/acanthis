@@ -67,15 +67,15 @@ void RectangleExplorer::explore() {
         ros::spinOnce();
     }
 
-    /*// euclidian distance to marker
-    double error = sqrt(pow(controller.get_x() - arucoPose.x, 2)
-            + pow(controller.get_y() - arucoPose.y, 2));
+    // euclidian distance to marker
+    double error = sqrt(pow(controller.get_x() - aruco_pose->position.x, 2)
+            + pow(controller.get_y() - aruco_pose->position.y, 2));
     while (ros::ok() && state == TRACKING) {
 
         if(error > 0.1) { //10[cm]
-            controller.move_relative(arucoPose.x, arucoPose.y, 0, 0);
-            error = sqrt(pow(controller.get_x() - arucoPose.x, 2)
-                         + pow(controller.get_y() - arucoPose.y, 2));
+            controller.move_relative(aruco_pose->position.x, aruco_pose->position.y, 0, 0);
+            error = sqrt(pow(controller.get_x() - aruco_pose->position.x, 2)
+                         + pow(controller.get_y() - aruco_pose->position.y, 2));
         } else {
             state = DONE;
             controller.land();
@@ -83,7 +83,7 @@ void RectangleExplorer::explore() {
         }
 
         ros::spinOnce();
-    }*/
+    }
 }
 
 void RectangleExplorer::get_relative_left_right(Direction lastDir, Direction& d1, Direction& d2){
@@ -124,6 +124,6 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
     } else if(this->state == TRACKING) {
-        //this->arucoPose = pose->position;
+        this->aruco_pose = pose;
     }
 }

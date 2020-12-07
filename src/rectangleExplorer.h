@@ -23,7 +23,7 @@ class RectangleExplorer {
 
     ros::Subscriber aruco_pose_sub;
 
-    //acanthis::ArucoPose::_position_type arucoPose;
+    acanthis::ArucoPose::ConstPtr aruco_pose;
 
     float hoverHeight;
     double minDist;
