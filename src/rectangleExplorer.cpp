@@ -7,8 +7,8 @@
 RectangleExplorer::RectangleExplorer(FlightController& controller)
         : controller(controller) {
     this->hoverHeight = 0.35;
-    this->minDist = 0.2;
-    this->waySize = 0.3;
+    this->minDist = 0.3;
+    this->waySize = 0.5;
     this->distMoved = 0;
     this->inFirstLoop = true;
 }
@@ -46,10 +46,12 @@ void RectangleExplorer::explore() {
     while (ros::ok() && inFirstLoop){
         controller.move_until_object(dir1,minDist);
         move_in_dir(goTo);
+        if(!inFirstLoop){
+            return;
+        }
         controller.move_until_object(dir2,minDist);
         move_in_dir(goTo);
     }
-    controller.land();
 }
 
 void RectangleExplorer::get_relative_left_right(Direction lastDir, Direction& d1, Direction& d2){
@@ -77,7 +79,8 @@ void RectangleExplorer::move_in_dir(Direction dir) {
     double d = controller.get_distance_measurement(dir);
     if(d < (minDist+waySize)){
         ROS_INFO("AT_WALL");
-        controller.move_in_direction(negate_dir(dir),distMoved);
+        controller.move_absolute(0, 0, controller.get_distance_measurement(Direction::DOWN), 0);
+        controller.land();
         inFirstLoop = false;
         return;
     }
