@@ -12,6 +12,8 @@ class RectangleExplorer {
     float hoverHeight;
     double minDist;
     double waySize;
+    double distMoved;
+    bool inFirstLoop;
     FlightController& controller;
 public:
     RectangleExplorer(FlightController& controller);
@@ -23,6 +25,7 @@ private:
     void turn_at_wall(Direction direction);
     void get_relative_left_right(Direction current, Direction& d1, Direction& d2);
     Direction negate_dir(Direction dir);
+    void move_in_dir(Direction dir);
 };
 
 #endif //SRC_RECTANGLEEXPLORER_H
