@@ -31,6 +31,12 @@ int main(int argc, char **argv) {
 
     /*FlightController controller(node, 100);
     controller.arm_drone();
+    controller.takeoff(0.5);
+    controller.hover(5);
+    controller.land();*/
+
+    /*FlightController controller(node, 100);
+    controller.arm_drone();
     controller.takeoff(0.4);
     controller.hover(5);*/
     /*controller.move_relative(1, 0, 0, 0);

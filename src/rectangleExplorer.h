@@ -22,6 +22,8 @@ class RectangleExplorer {
     FlightController controller;
 
     ros::Subscriber aruco_pose_sub;
+    double marker_x;
+    double marker_y;
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
 

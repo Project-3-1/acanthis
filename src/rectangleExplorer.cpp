@@ -57,25 +57,37 @@ void RectangleExplorer::explore() {
     // Do Exploration
     while (ros::ok() && inFirstLoop && state == EXPLORATION){
         controller.move_until_object(dir1,minDist);
+        if(state == TRACKING) {
+            break;
+        }
         move_in_dir(goTo);
+        if(state == TRACKING) {
+            break;
+        }
         if(!inFirstLoop){
             return;
         }
         controller.move_until_object(dir2,minDist);
+        if(state == TRACKING) {
+            break;
+        }
         move_in_dir(goTo);
-
+        if(state == TRACKING) {
+            break;
+        }
         ros::spinOnce();
     }
+    ROS_WARN("MARKER DETECTED!!!!!!");
 
     // euclidian distance to marker
-    double error = sqrt(pow(controller.get_x() - aruco_pose->position.x, 2)
-            + pow(controller.get_y() - aruco_pose->position.y, 2));
+    double error = sqrt(pow(controller.get_x() - marker_x, 2)
+            + pow(controller.get_y() - marker_y, 2));
     while (ros::ok() && state == TRACKING) {
-
+        ROS_INFO("Tracking mode %.2f", error);
         if(error > 0.1) { //10[cm]
-            controller.move_relative(aruco_pose->position.x, aruco_pose->position.y, 0, 0);
-            error = sqrt(pow(controller.get_x() - aruco_pose->position.x, 2)
-                         + pow(controller.get_y() - aruco_pose->position.y, 2));
+            controller.move_absolute(marker_x, marker_y, controller.get_z(),  0);
+            error = sqrt(pow(controller.get_x() - marker_x, 2)
+                         + pow(controller.get_y() - marker_y, 2));
         } else {
             state = DONE;
             controller.land();
@@ -121,9 +133,13 @@ void RectangleExplorer::move_in_dir(Direction dir) {
 }
 
 void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& pose) {
+    ROS_WARN("update pose");
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
-    } else if(this->state == TRACKING) {
+    }
+    if(this->state == TRACKING) {
         this->aruco_pose = pose;
+        marker_x = aruco_pose->position.x + pose->position.x;
+        marker_y = aruco_pose->position.y + pose->position.y;
     }
 }

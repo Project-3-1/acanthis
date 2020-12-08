@@ -16,6 +16,8 @@
 using namespace std;
 using namespace cv;
 
+const bool _ENABLE_CIRCLE_CUTOUT = true;
+
 static bool read_calibration(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
 {
     FileStorage fs(filename, FileStorage::READ);
@@ -121,11 +123,12 @@ int main(int argc, char **argv) {
             inputVideo.retrieve(image);
 
             // cutout circle
-
-            Mat mask = cv::Mat::zeros(cv::Size(image.cols, image.rows), image.type());
-            cv::circle(mask,cv::Point2i(320, 240), 240,cv::Scalar(255,255,255),
-                       -1);
-            cv::bitwise_and(image, mask, image);
+            if(_ENABLE_CIRCLE_CUTOUT) {
+                Mat mask = cv::Mat::zeros(cv::Size(image.cols, image.rows), image.type());
+                cv::circle(mask,cv::Point2i(320, 240), 200,cv::Scalar(255,255,255),
+                           -1);
+                cv::bitwise_and(image, mask, image);
+            }
             //---
 
             image.copyTo(original_image);
@@ -164,10 +167,19 @@ int main(int argc, char **argv) {
             }
 
             if(publish_debug_image) {
-                //cv::Mat undistorted;
-                //cv::undistort(image, undistorted, cameraMatrix, distCoeffs);
-                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+                Mat undistorted;
+                //undistorted(image, undistorted, cameraMatrix, distCoeffs);
+
+                cv::Mat map1, map2;
+                cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat::eye(3, 3, CV_32F),
+                                                     cameraMatrix, image.size(), CV_16SC2,
+                                                     map1, map2);
+                remap(image, undistorted, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
+
+                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", undistorted).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
+
+
             }
 
             raw_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", original_image).toImageMsg();

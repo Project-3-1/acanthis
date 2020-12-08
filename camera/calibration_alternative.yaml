@@ -1,0 +1,18 @@
+%YAML:1.0
+---
+calibration_time: "Fri 30 Oct 2020 01:38:40 CET"
+image_width: 640
+image_height: 480
+flags: 0
+camera_matrix: !!opencv-matrix
+        rows: 3
+        cols: 3
+        dt: d
+        data: [ 207.43076928415056, 0, 315.05862654454756,
+                0., 207.9519154577133, 226.4890896436256,
+                0., 0., 1. ]
+distortion_coefficients: !!opencv-matrix
+        rows: 1
+        cols: 4
+        dt: d
+        data: [ 0.5229711108527422, 0.3664512890099803, -0.8483356997276539, 0.38073117794353106]
