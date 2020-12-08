@@ -35,6 +35,7 @@ class RectangleExplorer {
 public:
     RectangleExplorer(ros::NodeHandle& node, double frequency);
     void explore();
+    void demo();
 
 private:
     bool is_close(double distance);

@@ -36,6 +36,19 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
 }
 
+bool FlightController::is_move_cancelled() {
+    return cancelled;
+}
+
+void FlightController::cancel_movement() {} {
+    this->cancelled = true;
+}
+
+void FlightController::_reset_move_cancelled() {
+    this->cancelled = false;
+}
+
+
 /**
  * In order to arm the drone, we have to send a few messages.
  */
@@ -263,9 +276,10 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
         double y_speed = dy / max_steps;
 
         while (ros::ok()) {
-            for (int i = 1; i <= floor(frequency * max_steps); i++) {
+            for (int i = 1; i <= floor(frequency * max_steps) && !is_move_cancelled(); i++) {
                 _publish_position(cx + (x_speed * i) / frequency, cy + (y_speed * i) / frequency, z, cyaw);
                 ros::spinOnce();
+                if(is_move_cancelled()) return;
                 rate.sleep();
             }
             break;
@@ -277,9 +291,10 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
         double yaw_steps = abs(dyaw / max_yaw);
         double yaw_speed = dyaw / yaw_steps;
         while (ros::ok()) {
-            for (int i = 1; i <= floor(frequency * yaw_steps); i++) {
+            for (int i = 1; i <= floor(frequency * yaw_steps) && !is_move_cancelled(); i++) {
                 _publish_position(x, y, z,cyaw + (yaw_speed * i) / frequency);
                 ros::spinOnce();
+                if(is_move_cancelled()) return;
                 rate.sleep();
             }
             break;
@@ -287,7 +302,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     }
 
     // --- final adjustment
-    while (ros::ok()) {
+    while (ros::ok() && !is_move_cancelled()) {
         _publish_position(x, y, z, yaw);
         ros::spinOnce();
 
@@ -297,12 +312,14 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
         double yaw_error = std::fmod(std::abs(_calculate_yaw(pose.orientation) - yaw), 360);
 
         // error < 0.05[cm] && yaw_error <= 10[deg]
-        if(error < 0.05 && yaw_error <= 10) {
+        if((error < 0.05 && yaw_error <= 10) || is_move_cancelled()) {
             break;
         }
         ROS_WARN("Error still too big -> dis_err: %.2f, yaw_err: %.2fdeg", error, yaw_error);
         rate.sleep();
     }
+    //TODO
+    _reset_move_cancelled();
 }
 
 ros::Rate FlightController::_create_rate() const {

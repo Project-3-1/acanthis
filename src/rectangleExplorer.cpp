@@ -70,44 +70,33 @@ void RectangleExplorer::explore() {
             controller.move_relative(.0,.0,.0,angle);
         }
     }
-    controller.hover(3);
-    controller.land();
-    return;
+
     Direction goTo = negate_dir(closest);
     // Do Exploration
     while (ros::ok() && inFirstLoop && state == EXPLORATION){
         controller.move_until_object(dir1,minDist);
-        if(state == TRACKING) {
-            break;
-        }
+        if(state == TRACKING) break;
         move_in_dir(goTo);
-        if(state == TRACKING) {
-            break;
-        }
+        if(state == TRACKING) break;
         if(!inFirstLoop){
             return;
         }
         controller.move_until_object(dir2,minDist);
-        if(state == TRACKING) {
-            break;
-        }
+        if(state == TRACKING) break;
         move_in_dir(goTo);
-        if(state == TRACKING) {
-            break;
-        }
+        if(state == TRACKING) break;
         ros::spinOnce();
+        if(state == TRACKING) break;
     }
     ROS_WARN("MARKER DETECTED!!!!!!");
 
     // euclidian distance to marker
-    double error = sqrt(pow(controller.get_x() - marker_x, 2)
-            + pow(controller.get_y() - marker_y, 2));
+    double error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
     while (ros::ok() && state == TRACKING) {
         ROS_INFO("Tracking mode %.2f", error);
         if(error > 0.1) { //10[cm]
-            controller.move_absolute(marker_x, marker_y, controller.get_z(),  0);
-            error = sqrt(pow(controller.get_x() - marker_x, 2)
-                         + pow(controller.get_y() - marker_y, 2));
+            controller.move_relative(marker_x, marker_y, 0,  0);
+            error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
         } else {
             state = DONE;
             controller.land();
@@ -115,6 +104,38 @@ void RectangleExplorer::explore() {
         }
 
         ros::spinOnce();
+    }
+}
+
+void RectangleExplorer::demo() {
+
+    controller.arm_drone();
+    controller.takeoff(0.5);
+
+    while (ros::ok() && state == EXPLORATION) {
+        if(controller.get_distance_measurement(FORWARD) < 0.2) {
+            controller.land();
+            ROS_WARN("land because wall");
+            return;
+        }
+        controller.move_relative(0.1, 0, 0, 0);
+        ros::spinOnce();
+    }
+
+    if(state == TRACKING) {
+        if (ros::ok()) {
+            double error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+            while (error > 0.05) {
+                controller.move_relative(marker_x, marker_y, 0, 0);
+                ros::spinOnce();
+                error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+                ROS_INFO("Target area error %.2fm", error);
+            }
+        }
+    }
+
+    if (ros::ok()) {
+        controller.land();
     }
 }
 
@@ -156,10 +177,11 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
     ROS_WARN("update pose");
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
+        this->controller.cancel_movement();
     }
     if(this->state == TRACKING) {
         this->aruco_pose = pose;
-        marker_x = aruco_pose->position.x + pose->position.x;
-        marker_y = aruco_pose->position.y + pose->position.y;
+        marker_x = -pose->position.x;
+        marker_y = pose->position.y;
     }
 }

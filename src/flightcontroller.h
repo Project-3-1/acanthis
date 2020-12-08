@@ -22,16 +22,21 @@ enum Direction {
 };
 
 class FlightController {
+
     crazyflie_driver::Position position;
-    double frequency;
     geometry_msgs::PoseStamped::_pose_type pose;
     ros::Publisher cmd_position_pub, cmd_stop_pub;
     ros::Subscriber crazyflie_pose_sub, crazyflie_ranger_sub;
 
+    bool cancelled = false;
+    double frequency;
     double range_measurements[5] {0, 0, 0, 0, 0};
 
 public:
     FlightController(ros::NodeHandle n, double freqency);
+
+    bool is_move_cancelled();
+    void cancel_movement();
 
     void arm_drone();
 
@@ -56,6 +61,8 @@ public:
 
 
 private:
+    void _reset_move_cancelled();
+
     void _update_pos(const geometry_msgs::PoseStamped &p);
     void _update_ranger(const crazyflie_driver::GenericLogData::ConstPtr &ranger);
     void _publish_position(double x, double y, double z, double yaw);

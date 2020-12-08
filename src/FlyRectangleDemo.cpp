@@ -31,7 +31,7 @@ int main(int argc, char **argv) {
     }*/
 
     RectangleExplorer rectangleExplorer(node, 100);
-    rectangleExplorer.explore();
+    rectangleExplorer.demo();
 
     /*FlightController controller(node, 100);
     controller.arm_drone();
