@@ -43,6 +43,9 @@ public:
     void turn_left();
     void turn_right();
 
+    double get_x();
+    double get_y();
+    double get_z();
     double get_distance_measurement(Direction direction);
     Direction get_closest_direction(const Direction directions []);
 
