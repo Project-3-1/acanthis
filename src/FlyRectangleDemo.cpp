@@ -15,6 +15,10 @@ int main(int argc, char **argv) {
     ros::init(argc, argv, "FlyRectangleDemo", ros::init_options::AnonymousName);
     ros::NodeHandle node("~");
 
+    //FlightController controller(node, 100);
+    //RectangleExplorer rectangleExplorer(controller);
+    //
+    //
     /*FlightController controller(node, 100);
     ros::Subscriber subscriber = node.subscribe("/acanthis/aruco_detector/pose", 1, update_marker_pos);
     while (subscriber.getNumPublishers() == 0) {
