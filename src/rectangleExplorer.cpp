@@ -3,11 +3,12 @@
 #include <utility>
 #include "flightcontroller.h"
 #include "ros/node_handle.h"
+#include "math.h"
 
 RectangleExplorer::RectangleExplorer(FlightController& controller)
         : controller(controller) {
     this->hoverHeight = 0.35;
-    this->minDist = 0.3;
+    this->minDist = 0.4;
     this->waySize = 0.5;
     this->distMoved = 0;
     this->inFirstLoop = true;
@@ -32,7 +33,7 @@ void RectangleExplorer::explore() {
     ROS_INFO("takeoff done");
     // Find Closest Wall
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
-    Direction closest = controller.get_closest_direction(directions);
+    Direction closest = FORWARD;//controller.get_closest_direction(directions);
     //Move To It
     ROS_INFO("move %d", closest);
     controller.move_until_object(closest,minDist);
@@ -41,6 +42,25 @@ void RectangleExplorer::explore() {
     Direction dir1 = LEFT;
     Direction dir2 = RIGHT;
     get_relative_left_right(closest,dir1,dir2);
+    // angle changes
+    double dist1 = controller.get_distance_measurement(dir1);
+    double dist2 = controller.get_distance_measurement(dir2);
+    if(dist1 < dist2){
+        if(dist1 < 1){
+            double angle = atan(dist1/minDist)*RAD_TO_DEG;
+            ROS_INFO("Angle1%f",angle);
+            controller.move_relative(.0,.0,.0,angle);
+        }
+    }else{
+        if(dist2 < 1){
+            double angle = atan(dist2/minDist)*RAD_TO_DEG;
+            ROS_INFO("Angle2%f",angle);
+            controller.move_relative(.0,.0,.0,angle);
+        }
+    }
+    controller.hover(3);
+    controller.land();
+    return;
     Direction goTo = negate_dir(closest);
     // Do Exploration
     while (ros::ok() && inFirstLoop){

@@ -10,8 +10,11 @@ int main(int argc, char **argv) {
     ros::NodeHandle node("~");
 
     FlightController controller(node, 100);
-    RectangleExplorer rectangleExplorer(controller);
-    rectangleExplorer.explore();
+    //RectangleExplorer rectangleExplorer(controller);
+    //
+    controller.takeoff(0.4);
+    controller.hover(5);
+    controller.land();
     /*FlightController controller(node, 100);
 
     controller.arm_drone();
