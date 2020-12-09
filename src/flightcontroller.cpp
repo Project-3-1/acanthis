@@ -40,7 +40,7 @@ bool FlightController::is_move_cancelled() {
     return cancelled;
 }
 
-void FlightController::cancel_movement() {} {
+void FlightController::cancel_movement() {
     this->cancelled = true;
 }
 

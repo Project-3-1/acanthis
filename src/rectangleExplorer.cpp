@@ -182,6 +182,6 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
     if(this->state == TRACKING) {
         this->aruco_pose = pose;
         marker_x = -pose->position.x;
-        marker_y = pose->position.y;
+        marker_y = -pose->position.y;
     }
 }

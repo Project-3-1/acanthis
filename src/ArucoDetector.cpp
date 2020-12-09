@@ -1,7 +1,5 @@
 #include "ros/ros.h"
 
-#include "flightcontroller.h"
-
 #include <opencv2/opencv.hpp>
 #include <opencv2/aruco/charuco.hpp>
 #include <opencv2/highgui.hpp>
@@ -16,7 +14,7 @@
 using namespace std;
 using namespace cv;
 
-const bool _ENABLE_CIRCLE_CUTOUT = true;
+const bool _ENABLE_CIRCLE_CUTOUT = false;
 
 static bool read_calibration(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
 {
@@ -51,9 +49,15 @@ int main(int argc, char **argv) {
     ros::Rate rate(60);
 
     // --- config
-    string filename;
-    if(!node.getParam("calibration", filename)) {
+    string filename_calibration;
+    if(!node.getParam("calibration", filename_calibration)) {
         ROS_ERROR("Path to calibration file missing.");
+        return 1;
+    }
+
+    string filename_calibration_fisheye;
+    if(!node.getParam("calibration_fisheye", filename_calibration_fisheye)) {
+        ROS_ERROR("Path to fisheye calibration file missing.");
         return 1;
     }
 
@@ -108,9 +112,11 @@ int main(int argc, char **argv) {
         return 1;
     }
 
-    Mat cameraMatrix, distCoeffs, distCoeffsStdDev;
-    bool readOk = read_calibration(filename, cameraMatrix, distCoeffs);
-    if (!readOk) {
+    Mat cameraMatrixAfterFisheye, distCoeffsAfterFisheye;
+    Mat cameraMatrixFisheye, distCoeffsFisheye;
+    bool read_calibration_ok = read_calibration(filename_calibration, cameraMatrixAfterFisheye, distCoeffsAfterFisheye);
+    bool read_calibration_fisheye_ok = read_calibration(filename_calibration_fisheye, cameraMatrixFisheye, distCoeffsFisheye);
+    if (!read_calibration_ok || !read_calibration_fisheye_ok) {
         ROS_ERROR("Failed to read camera calibration file");
         return 1;
     } else {
@@ -130,8 +136,16 @@ int main(int argc, char **argv) {
                 cv::bitwise_and(image, mask, image);
             }
             //---
-
             image.copyTo(original_image);
+
+            // undistort image
+            //undistorted(image, undistorted, cameraMatrix, distCoeffs);
+            cv::Mat map1, map2;
+            cv::fisheye::initUndistortRectifyMap(cameraMatrixFisheye, distCoeffsFisheye, cv::Mat::eye(3, 3, CV_32F),
+                                                 cameraMatrixFisheye, image.size(), CV_16SC2, map1, map2);
+            remap(image, image, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
+            //---
+
 
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
@@ -139,12 +153,12 @@ int main(int argc, char **argv) {
 
             if (!markerIds.empty()) {
                 std::vector<Vec3d> rvecs, tvecs;
-                aruco::estimatePoseSingleMarkers(markerCorners, marker_size, cameraMatrix, distCoeffs, rvecs, tvecs);
+                aruco::estimatePoseSingleMarkers(markerCorners, marker_size, cameraMatrixAfterFisheye, distCoeffsAfterFisheye, rvecs, tvecs);
                 if (!rvecs.empty()) {
 
                     if(publish_debug_image) {
                         for (int i = 0; i < markerIds.size(); i++) {
-                            cv::aruco::drawAxis(image, cameraMatrix, distCoeffs, rvecs.at(i), tvecs.at(i), marker_size);
+                            cv::aruco::drawAxis(image, cameraMatrixAfterFisheye, distCoeffsAfterFisheye, rvecs.at(i), tvecs.at(i), marker_size);
                         }
                     }
 
@@ -167,19 +181,8 @@ int main(int argc, char **argv) {
             }
 
             if(publish_debug_image) {
-                Mat undistorted;
-                //undistorted(image, undistorted, cameraMatrix, distCoeffs);
-
-                cv::Mat map1, map2;
-                cv::fisheye::initUndistortRectifyMap(cameraMatrix, distCoeffs, cv::Mat::eye(3, 3, CV_32F),
-                                                     cameraMatrix, image.size(), CV_16SC2,
-                                                     map1, map2);
-                remap(image, undistorted, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
-
-                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", undistorted).toImageMsg();
+                debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
-
-
             }
 
             raw_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", original_image).toImageMsg();
