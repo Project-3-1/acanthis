@@ -30,14 +30,14 @@ int main(int argc, char **argv) {
         ROS_INFO("x: %f", pose.position.x);
     }*/
 
-    RectangleExplorer rectangleExplorer(node, 100);
-    rectangleExplorer.demo();
+    /*RectangleExplorer rectangleExplorer(node, 100);
+    rectangleExplorer.explore();*/
 
-    /*FlightController controller(node, 100);
+    FlightController controller(node, 100);
     controller.arm_drone();
     controller.takeoff(0.5);
-    controller.hover(5);
-    controller.land();*/
+    controller.hover(5000);
+    controller.land();
 
     /*FlightController controller(node, 100);
     controller.arm_drone();

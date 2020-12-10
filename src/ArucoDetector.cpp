@@ -151,6 +151,7 @@ int main(int argc, char **argv) {
             std::vector<std::vector<Point2f> > markerCorners;
             aruco::detectMarkers(image, dictionary, markerCorners, markerIds, params);
 
+            double x, y, z;
             if (!markerIds.empty()) {
                 std::vector<Vec3d> rvecs, tvecs;
                 aruco::estimatePoseSingleMarkers(markerCorners, marker_size, cameraMatrixAfterFisheye, distCoeffsAfterFisheye, rvecs, tvecs);
@@ -175,12 +176,21 @@ int main(int argc, char **argv) {
                         marker_pose_msg.position.y = tvec[1];
                         marker_pose_msg.position.z = tvec[2];
 
+                        // ---
+                        x = tvec[0] * -1;
+                        y = tvec[1];
+                        z = tvec[2];
+                        // ---
+
                         pose_pub.publish(marker_pose_msg);
                     }
                 }
             }
 
             if(publish_debug_image) {
+                putText(image, format("x: %.2f", x), Point(10, 50), FONT_HERSHEY_COMPLEX, 1, CV_RGB(255,0, 0), 3);
+                putText(image, format("y: %.2f", y), Point(10, 80), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 3);
+                putText(image, format("z: %.2f", z), Point(10, 110), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }

@@ -19,8 +19,8 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
     ROS_INFO("pose arrived");
     // ---
 
-    this->hoverHeight = 0.35;
-    this->minDist = 0.4;
+    this->hoverHeight = 0.9;
+    this->minDist = 0.5;
     this->waySize = 0.5;
     this->distMoved = 0;
     this->inFirstLoop = true;
@@ -94,7 +94,7 @@ void RectangleExplorer::explore() {
     double error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
     while (ros::ok() && state == TRACKING) {
         ROS_INFO("Tracking mode %.2f", error);
-        if(error > 0.1) { //10[cm]
+        if(error > 0.05) { //10[cm]
             controller.move_relative(marker_x, marker_y, 0,  0);
             error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
         } else {
