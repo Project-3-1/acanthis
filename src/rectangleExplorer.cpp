@@ -60,13 +60,13 @@ void RectangleExplorer::explore() {
 
     if(dist1 < dist2){
         if(dist1 < 1){
-            double angle = (M_PI - atan(dist1/minDist))*RAD_TO_DEG;
+            double angle = (atan(dist1/minDist))*RAD_TO_DEG;
             ROS_INFO("Angle1%f",angle);
             controller.move_relative(.0,.0,.0,angle);
         }
     }else{
         if(dist2 < 1){
-            double angle = (M_PI - atan(dist2/minDist))*RAD_TO_DEG;
+            double angle = (atan(dist2/minDist))*RAD_TO_DEG;
             ROS_INFO("Angle2%f",angle);
             controller.move_relative(.0,.0,.0,angle);
         }
