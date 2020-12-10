@@ -30,8 +30,8 @@ int main(int argc, char **argv) {
         ROS_INFO("x: %f", pose.position.x);
     }*/
 
-    /*RectangleExplorer rectangleExplorer(node, 100);
-    rectangleExplorer.explore();*/
+    RectangleExplorer rectangleExplorer(node, 100);
+    rectangleExplorer.explore();
 
     /*FlightController controller(node, 100);
     controller.arm_drone();
@@ -40,14 +40,14 @@ int main(int argc, char **argv) {
     controller.move_relative(2.5, 0, 0, 0);
     controller.land();*/
 
-    FlightController controller(node, 100);
+    /*FlightController controller(node, 100);
     controller.arm_drone();
     controller.takeoff(1.5);
     controller.move_relative(1.5, 0, 0, 0);
     controller.move_relative(0, 1.5, 0, 0);
     controller.move_relative(-1.5, 0, 0, 0);
     controller.move_relative(0, -1.5, 0, 0);
-    controller.land();
+    controller.land();*/
 
     ros::spin();
     return 0;
