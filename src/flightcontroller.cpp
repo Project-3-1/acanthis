@@ -236,7 +236,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     // --- max movement speed for each axis in m/s
     const double max_x = 1; // in m/s
     const double max_y = 1; // in m/s
-    const double max_z = 0.8; // in m/s
+    const double max_z = 0.6; // in m/s
     const double max_yaw = 45; // in deg/s
 
     // --- current values

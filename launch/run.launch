@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <group ns="acanthis">
-        <node if="false" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
+        <node if="true" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
         <node if="false" name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
             <param name="marker_size" value="0.174" /> <!-- 0.174 -->
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />

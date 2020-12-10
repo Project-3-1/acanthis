@@ -33,25 +33,21 @@ int main(int argc, char **argv) {
     /*RectangleExplorer rectangleExplorer(node, 100);
     rectangleExplorer.explore();*/
 
-    FlightController controller(node, 100);
-    controller.arm_drone();
-    controller.takeoff(0.5);
-    controller.hover(5000);
-    controller.land();
-
     /*FlightController controller(node, 100);
     controller.arm_drone();
-    controller.takeoff(0.4);
-    controller.hover(5);*/
-    /*controller.move_relative(1, 0, 0, 0);
-    controller.move_relative(0, 0, 0, 90);
-    controller.move_relative(0, 1, 0, 0);
-    controller.move_relative(0, 0, 0, 90);
-    controller.move_relative(-1, 0, 0, 0);
-    controller.move_relative(0, 0, 0, 90);
-    controller.move_relative(0, -1, 0, 0);
-    controller.move_relative(0, 0, 0, 90);*/
-    //controller.land();
+    controller.takeoff(1.2);
+    controller.hover(2);
+    controller.move_relative(2.5, 0, 0, 0);
+    controller.land();*/
+
+    FlightController controller(node, 100);
+    controller.arm_drone();
+    controller.takeoff(1.5);
+    controller.move_relative(1.5, 0, 0, 0);
+    controller.move_relative(0, 1.5, 0, 0);
+    controller.move_relative(-1.5, 0, 0, 0);
+    controller.move_relative(0, -1.5, 0, 0);
+    controller.land();
 
     ros::spin();
     return 0;

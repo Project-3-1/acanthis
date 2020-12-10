@@ -19,7 +19,7 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
     ROS_INFO("pose arrived");
     // ---
 
-    this->hoverHeight = 0.9;
+    this->hoverHeight = 0.4;
     this->minDist = 0.5;
     this->waySize = 0.5;
     this->distMoved = 0;
@@ -45,7 +45,7 @@ void RectangleExplorer::explore() {
     ROS_INFO("takeoff done");
     // Find Closest Wall
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
-    Direction closest = FORWARD;//controller.get_closest_direction(directions);
+    Direction closest = controller.get_closest_direction(directions);
     //Move To It
     ROS_INFO("move %d", closest);
     controller.move_until_object(closest,minDist);
@@ -57,6 +57,7 @@ void RectangleExplorer::explore() {
     // angle changes
     double dist1 = controller.get_distance_measurement(dir1);
     double dist2 = controller.get_distance_measurement(dir2);
+
     if(dist1 < dist2){
         if(dist1 < 1){
             double angle = (M_PI - atan(dist1/minDist))*RAD_TO_DEG;
@@ -162,7 +163,7 @@ Direction RectangleExplorer::negate_dir(Direction dir){
 
 void RectangleExplorer::move_in_dir(Direction dir) {
     double d = controller.get_distance_measurement(dir);
-    if(d < (minDist+waySize)){
+    if(d < (minDist+waySize) && false){
         ROS_INFO("AT_WALL");
         controller.move_absolute(0, 0, controller.get_distance_measurement(Direction::DOWN), 0);
         controller.land();
