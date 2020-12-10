@@ -158,7 +158,7 @@ if __name__ == '__main__':
                             # if there is an obstacle closer to the drone on the right side than on the left side
                             if multiranger.right < multiranger.left and right_distance < 1:  # 1 is arbitrary, need to change the value
                                 # computing the required angle to yaw in order to fly parallel to the wall.
-                                angle_to_yaw = math.degrees(PI/2 - math.atan(right_distance / front_distance))
+                                angle_to_yaw = math.degrees(math.atan(right_distance / front_distance))
                                 # turn left and be parallel to the wall
                                 motion_commander.turn_left(angle_to_yaw)
                                 first_wall_is_found = True
@@ -172,7 +172,7 @@ if __name__ == '__main__':
                             # if there is an obstacle closer to the drone on the left side than on the left side
                             elif multiranger.left < multiranger.right and left_distance < 1:
                                 # computing the required angle to yaw in order to fly parallel to the wall.
-                                angle_to_yaw = math.degrees(PI/2 - math.atan(left_distance / front_distance))
+                                angle_to_yaw = math.degrees(math.atan(left_distance / front_distance))
                                 # turn right and be parallel to the wall
                                 motion_commander.turn_right(angle_to_yaw)
                                 first_wall_is_found = True
