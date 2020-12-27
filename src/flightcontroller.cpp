@@ -87,7 +87,9 @@ void FlightController::takeoff(float height) {
  * Automatically lands the drone at the current position.
  */
 void FlightController::land() {
-    move_relative(0, 0, 0.1 - pose.position.z, 0);
+    if(LANDING_HEIGHT - pose.position.z < 0) {
+        move_relative(0, 0, LANDING_HEIGHT - pose.position.z, 0);
+    }
     stop();
 }
 

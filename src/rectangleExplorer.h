@@ -24,6 +24,7 @@ class RectangleExplorer {
     ros::Subscriber aruco_pose_sub;
     double marker_x;
     double marker_y;
+    double marker_z;
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
 

@@ -124,14 +124,29 @@ void RectangleExplorer::demo() {
     }
 
     if(state == TRACKING) {
-        if (ros::ok()) {
-            double error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
-            while (error > 0.05) {
-                controller.move_relative(marker_x, marker_y, 0, 0);
-                ros::spinOnce();
-                error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
-                ROS_INFO("Target area error %.2fm", error);
-            }
+        double error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+
+        // first we do some crude translation correction for x and y until the error is less than 20 [cm]
+        while (ros::ok() && error > 0.2) {
+            controller.move_relative(marker_x, marker_y, 0, 0);
+            ros::spinOnce();
+            error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+            ROS_INFO("Target area error %.2fm", error);
+        }
+
+        // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
+        // TODO An issue with this might be that we can no longer do the x,y error correction if we are already too close
+        //  to the marker, and we can no longer see it.
+        //   a) We can either try to make again the marker with a marker inside, or
+        //   b) for now, we can just figure out what hight and x,y error is acceptable before we are no longer able to see it, or
+        //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
+        //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
+        while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
+            double height = marker_z + 0.15;
+            controller.move_relative(marker_x, marker_y, height, 0);
+            ros::spinOnce();
+            error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+            ROS_INFO("Target area error %.2fm", error);
         }
     }
 
@@ -184,5 +199,6 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
         this->aruco_pose = pose;
         marker_x = -pose->position.x;
         marker_y = -pose->position.y;
+        marker_z = -pose->position.z;
     }
 }
