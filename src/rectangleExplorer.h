@@ -8,6 +8,7 @@
 #include "geometry_msgs/PoseStamped.h"
 
 #include "acanthis/ArucoPose.h"
+#include "ArucoEKF.h"
 
 enum State {
     EXPLORATION,
@@ -22,11 +23,13 @@ class RectangleExplorer {
     FlightController controller;
 
     ros::Subscriber aruco_pose_sub;
-    double marker_x;
-    double marker_y;
-    double marker_z;
+    double marker_offset_x;
+    double marker_offset_y;
+    double marker_offset_z;
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
+
+    ArucoEKF ekf;
 
     float hoverHeight;
     double minDist;

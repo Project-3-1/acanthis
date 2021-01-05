@@ -3,7 +3,7 @@ project(acanthis)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
 add_compile_options(-std=c++11)
-set(OpenCV_DIR /usr/local/share/OpenCV)
+set(OpenCV_DIR /usr/local/lib/cmake/opencv4/)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -131,7 +131,7 @@ include_directories(
 add_library(${PROJECT_NAME}
     src/flightcontroller.cpp
     src/rectangleExplorer.cpp
-)
+        src/ArucoEKF.cpp src/ArucoEKF.h)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries

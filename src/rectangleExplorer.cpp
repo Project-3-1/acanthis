@@ -92,12 +92,12 @@ void RectangleExplorer::explore() {
     ROS_WARN("MARKER DETECTED!!!!!!");
 
     // euclidian distance to marker
-    double error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
+    double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
     while (ros::ok() && state == TRACKING) {
         ROS_INFO("Tracking mode %.2f", error);
         if(error > 0.05) { //10[cm]
-            controller.move_relative(marker_x, marker_y, 0,  0);
-            error = sqrt(pow(marker_x, 2) + pow( marker_y, 2));
+            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0);
+            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
         } else {
             state = DONE;
             controller.land();
@@ -124,13 +124,13 @@ void RectangleExplorer::demo() {
     }
 
     if(state == TRACKING) {
-        double error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+        double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
 
         // first we do some crude translation correction for x and y until the error is less than 20 [cm]
         while (ros::ok() && error > 0.2) {
-            controller.move_relative(marker_x, marker_y, 0, 0);
+            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0);
             ros::spinOnce();
-            error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
             ROS_INFO("Target area error %.2fm", error);
         }
 
@@ -142,10 +142,10 @@ void RectangleExplorer::demo() {
         //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
         //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
         while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
-            double height = marker_z + 0.15;
-            controller.move_relative(marker_x, marker_y, height, 0);
+            double height = marker_offset_z + 0.15;
+            controller.move_relative(marker_offset_x, marker_offset_y, height, 0);
             ros::spinOnce();
-            error = sqrt(pow(marker_x, 2) + pow(marker_y, 2));
+            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
             ROS_INFO("Target area error %.2fm", error);
         }
     }
@@ -197,8 +197,15 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
     }
     if(this->state == TRACKING) {
         this->aruco_pose = pose;
-        marker_x = -pose->position.x;
-        marker_y = -pose->position.y;
-        marker_z = -pose->position.z;
+        marker_offset_x = -pose->position.x;
+        marker_offset_y = -pose->position.y;
+        marker_offset_z = -pose->position.z;
+
+        // --- upate ekf
+        if(this->ekf.get_last_seen() >= 10) {
+            this->ekf.reset();
+        }
+
+        this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);
     }
 }
