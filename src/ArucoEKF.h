@@ -38,10 +38,8 @@ public:
      */
     void reset();
 
-    double get_last_seen();
-
-    cv::Vec2d get_position();
-    cv::Vec2d get_velocity();
+    cv::Vec4d get_position();
+    cv::Vec4d get_velocity();
 };
 
 

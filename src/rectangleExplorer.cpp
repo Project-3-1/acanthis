@@ -91,21 +91,35 @@ void RectangleExplorer::explore() {
     }
     ROS_WARN("MARKER DETECTED!!!!!!");
 
-    // euclidian distance to marker
-    double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-    while (ros::ok() && state == TRACKING) {
-        ROS_INFO("Tracking mode %.2f", error);
-        if(error > 0.05) { //10[cm]
-            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0);
+    if(state == TRACKING) {
+        // euclidian distance to marker
+        double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
+        while (ros::ok() && error > 0.1) {
+            ROS_INFO("Tracking mode %.2f", error);
+            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0, false);
             error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-        } else {
-            state = DONE;
-            controller.land();
-            break;
+            ros::spinOnce();
         }
 
-        ros::spinOnce();
+        // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
+        // TODO An issue with this might be that we can no longer do the x,y error correction if we are already too close
+        //  to the marker, and we can no longer see it.
+        //   a) We can either try to make again the marker with a marker inside, or
+        //   b) for now, we can just figure out what height and x,y error is acceptable before we are no longer able to see it, or
+        //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
+        //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
+        while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
+            double height = marker_offset_z + 0.15;
+            controller.move_relative(marker_offset_x, marker_offset_y, height, 0, false);
+            ros::spinOnce();
+            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
+            ROS_INFO("Target area error %.2fm", error);
+        }
+
+        controller.stop();
     }
+
+
 }
 
 void RectangleExplorer::demo() {
@@ -134,20 +148,7 @@ void RectangleExplorer::demo() {
             ROS_INFO("Target area error %.2fm", error);
         }
 
-        // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
-        // TODO An issue with this might be that we can no longer do the x,y error correction if we are already too close
-        //  to the marker, and we can no longer see it.
-        //   a) We can either try to make again the marker with a marker inside, or
-        //   b) for now, we can just figure out what hight and x,y error is acceptable before we are no longer able to see it, or
-        //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
-        //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
-        while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
-            double height = marker_offset_z + 0.15;
-            controller.move_relative(marker_offset_x, marker_offset_y, height, 0);
-            ros::spinOnce();
-            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-            ROS_INFO("Target area error %.2fm", error);
-        }
+
     }
 
     if (ros::ok()) {
@@ -190,7 +191,6 @@ void RectangleExplorer::move_in_dir(Direction dir) {
 }
 
 void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& pose) {
-    ROS_WARN("update pose");
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
         this->controller.cancel_movement();
@@ -201,7 +201,7 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
         marker_offset_y = -pose->position.y;
         marker_offset_z = -pose->position.z;
 
-        // --- upate ekf
+        // --- update ekf
         if(this->ekf.get_last_seen() >= 10) {
             this->ekf.reset();
         }

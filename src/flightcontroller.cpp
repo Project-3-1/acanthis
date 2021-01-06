@@ -213,6 +213,13 @@ void FlightController::turn_right() {
     move_relative(0, 0, 0, -90);
 }
 
+void FlightController::move_absolute(double x, double y, double z, int yaw) {
+    move_absolute(x, y, z, yaw, true);
+}
+void FlightController::move_relative(double x, double y, double z, int yaw) {
+    move_relative(x, y, z, yaw, true);
+}
+
 /**
  * Moves the drone relative to its current position.
  * @param dx delta x
@@ -220,9 +227,9 @@ void FlightController::turn_right() {
  * @param dz delta z
  * @param dyaw delta yaw
  */
-void FlightController::move_relative(double dx, double dy, double dz, int dyaw) {
+void FlightController::move_relative(double dx, double dy, double dz, int dyaw, bool error_correction) {
     move_absolute(pose.position.x + dx, pose.position.y + dy, pose.position.z + dz,
-                  _calculate_yaw(pose.orientation) + dyaw);
+                  _calculate_yaw(pose.orientation) + dyaw, error_correction);
 }
 
 /**
@@ -232,7 +239,7 @@ void FlightController::move_relative(double dx, double dy, double dz, int dyaw) 
  * @param z new z position
  * @param yaw new yaw rotation
  */
-void FlightController::move_absolute(double x, double y, double z, int yaw) {
+void FlightController::move_absolute(double x, double y, double z, int yaw, bool error_correction) {
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
@@ -307,6 +314,10 @@ void FlightController::move_absolute(double x, double y, double z, int yaw) {
     while (ros::ok() && !is_move_cancelled()) {
         _publish_position(x, y, z, yaw);
         ros::spinOnce();
+
+        if(error_correction) {
+            break;
+        }
 
         double error = std::sqrt((std::pow(pose.position.x - x, 2) + std::pow(pose.position.y - y, 2)
                                   + std::pow(pose.position.z - z, 2)));
