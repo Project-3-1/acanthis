@@ -109,11 +109,13 @@ void RectangleExplorer::explore() {
         //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
         //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
         while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
+            cv::Vec4d platform_velocity = ekf.get_velocity();
             double height = marker_offset_z + 0.15;
             controller.move_relative(marker_offset_x, marker_offset_y, height, 0, false);
             ros::spinOnce();
             error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-            ROS_INFO("Target area error %.2fm", error);
+            ROS_INFO("error %.2f [m], v_x=%.2f ±%.2f [m/s], v_y=%.2f ±%.2f [m/s]", error, platform_velocity[0],
+                     platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         }
 
         controller.stop();

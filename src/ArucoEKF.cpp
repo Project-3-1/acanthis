@@ -24,9 +24,9 @@ void ArucoEKF::update(double x, double y) {
         kf.transitionMatrix.at<float>(7) = dT;
 
         Mat control = Mat::zeros(4, 1, CV_32F);
-        control.at<float>(2) = 0.5 * pow(dT, 2);
+        control.at<float>(1) = 0.5 * pow(dT, 2);
         control.at<float>(3) = 0.5 * pow(dT, 2);
-        state = kf.predict(control);
+        state = kf.predict();
     }
 
     meas.at<float>(0) = x;
@@ -81,7 +81,7 @@ void ArucoEKF::reset() {
 
     // control_vector = numpy.matrix([[0],[0],[0.5*-9.81*timeslice*timeslice],[-9.81*timeslice]])
     kf.controlMatrix = Mat::zeros(4, 4, CV_32F);
-    kf.controlMatrix.at<float>(10) = 1;
+    kf.controlMatrix.at<float>(5) = 1;
     kf.controlMatrix.at<float>(15) = 1;
 
     this->found = false;
