@@ -57,37 +57,11 @@ void Bug::explore() {
     double dist1 = controller.get_distance_measurement(dir1);
     double dist2 = controller.get_distance_measurement(dir2);
 
-    if(dist1 < dist2){
-        if(dist1 < 1){
-            double angle = (atan(dist1/minDist))*RAD_TO_DEG;
-            ROS_INFO("Angle1%f",angle);
-            controller.move_relative(.0,.0,.0,angle);
-        }
-    }else{
-        if(dist2 < 1){
-            double angle = (atan(dist2/minDist))*RAD_TO_DEG;
-            ROS_INFO("Angle2%f",angle);
-            controller.move_relative(.0,.0,.0,angle);
-        }
-    }
 
-    Direction goTo = negate_dir(closest);
-    // Do Exploration
     while (ros::ok() && state == EXPLORATION){
-        controller.move_until_object(dir1,minDist);
+        if(state == TRACKING) break;
         avoid();
-        /*if(state == TRACKING) break;
-        rectangleExplorer.hmove_in_dir(goTo);
         if(state == TRACKING) break;
-        if(!inFirstLoop){
-            return;
-        }
-        controller.move_until_object(dir2,minDist);
-        if(state == TRACKING) break;
-        move_in_dir(goTo);
-        if(state == TRACKING) break;
-        ros::spinOnce();
-        if(state == TRACKING) break;*/
     }
     ROS_WARN("MARKER DETECTED!!!!!!");
 
@@ -133,12 +107,25 @@ void Bug::avoid(){
         controller.move_relative(.0,.0,.0,90);
     }
     closest = controller.get_closest_direction(directions);
-    ROS_INFO("closest %d",  closest);
-    controller.stop();
- /*   while( !targetfound || (x!=marker_offset_x && y!=marker_offset_y){
+    while( state == EXPLORATION || (x!=position.x && y!=position.y){
+        if(state == TRACKING) break;
         // TODO target check
-        while()
-    } */
+        while(closest == controller.get_closest_direction(directions)){
+            if(state == TRACKING) break;
+            controller.move_until_object(FORWARD,minDist);
+            if(controller.get_distance_measurement(closest) > minDist){
+                controller.move_until_object(closest,minDist);
+            }
+        }
+        if(closest != controller.get_closest_direction(directions)){
+            auto dir = 1;
+            if(closest == RIGHT){
+                dir = -1;
+            }
+            controller.move_relative(.0,.0,.0,dir*90);
+            closest = controller.get_closest_direction(directions);
+        }
+    }
 }
 
 void Bug::demo() {
