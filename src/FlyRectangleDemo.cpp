@@ -1,8 +1,9 @@
 #include "ros/ros.h"
 
 #include "flightcontroller.h"
-#include "rectangleExplorer.h"
+//s#include "rectangleExplorer.h"
 #include "acanthis/ArucoPose.h"
+#include "Bug.h"
 
 using namespace std;
 
@@ -30,8 +31,8 @@ int main(int argc, char **argv) {
         ROS_INFO("x: %f", pose.position.x);
     }*/
 
-    RectangleExplorer rectangleExplorer(node, 100);
-    rectangleExplorer.run();
+    Bug rectangleExplorer(node, 100);
+    rectangleExplorer.explore();
 
     /*FlightController controller(node, 100);
     controller.arm_drone();

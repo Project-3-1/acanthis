@@ -42,6 +42,7 @@ public:
     void demo();
 
 private:
+    void avoid();
     bool is_close(double distance);
     bool is_in_Distance(double distance);
     void turn_at_wall(Direction direction);
