@@ -57,12 +57,8 @@ void Bug::explore() {
     double dist1 = controller.get_distance_measurement(dir1);
     double dist2 = controller.get_distance_measurement(dir2);
 
+    avoid();
 
-    while (ros::ok() && state == EXPLORATION){
-        if(state == TRACKING) break;
-        avoid();
-        if(state == TRACKING) break;
-    }
     ROS_WARN("MARKER DETECTED!!!!!!");
 
     if(state == TRACKING) {
@@ -103,11 +99,13 @@ void Bug::avoid(){
     auto y = controller.get_y();
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
-    if(closest == FORWARD || closest == BACK){
+    ROS_INFO(" closest", closest);
+    if(closest == 3 || closest == 4){
         controller.move_relative(.0,.0,.0,90);
     }
     closest = controller.get_closest_direction(directions);
-    while( state == EXPLORATION /*|| (x!=controller.get_x() && y!=controller.get_y()*/){
+    ROS_INFO(" #2 closest ", directions[closest]);
+    while( ros::ok() && state == EXPLORATION /*|| (x!=controller.get_x() && y!=controller.get_y()*/){
         if(state == TRACKING) break;
         // TODO target check
         while(closest == controller.get_closest_direction(directions)){
@@ -119,7 +117,7 @@ void Bug::avoid(){
         }
         if(closest != controller.get_closest_direction(directions)){
             auto dir = 1;
-            if(closest == RIGHT){
+            if(closest == 2){
                 dir = -1;
             }
             controller.move_relative(.0,.0,.0,dir*90);
