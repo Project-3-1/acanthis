@@ -13,13 +13,11 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
     ros::Rate rate(2);
     this->aruco_pose_sub = node.subscribe("/acanthis/aruco_detector/pose", 1, &RectangleExplorer::_update_aruco_pose, this);
     while (this->aruco_pose_sub.getNumPublishers() == 0) {
-        ROS_INFO("wait for aruco pose");
         rate.sleep();
     }
-    ROS_INFO("pose arrived");
     // ---
 
-    this->hoverHeight = 0.4;
+    this->hoverHeight = 1;
     this->minDist = 0.5;
     this->waySize = 0.5;
     this->distMoved = 0;
@@ -33,16 +31,24 @@ bool RectangleExplorer::is_in_Distance(double distance) {
     double min = 0.75;
     return (distance < min);
 }
-void RectangleExplorer::turn_at_wall(Direction direction) {
 
+void RectangleExplorer::run() {
+    // Start and hover at height
+    controller.arm_drone();
+    controller.takeoff(hoverHeight);
+
+    while (ros::ok() && state != DONE) {
+        ROS_INFO("transition state: %d", state);
+        switch (state) {
+            case EXPLORATION: explore(); break;
+            case TRACKING: track(); break;
+            case LANDING: land(); break;
+            case DONE:break;
+        }
+    }
 }
 
 void RectangleExplorer::explore() {
-    // Start and hover at height
-    controller.arm_drone();
-    ROS_INFO("takeoff");
-    controller.takeoff(hoverHeight);
-    ROS_INFO("takeoff done");
     // Find Closest Wall
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
@@ -62,13 +68,13 @@ void RectangleExplorer::explore() {
         if(dist1 < 1){
             double angle = (atan(dist1/minDist))*RAD_TO_DEG;
             ROS_INFO("Angle1%f",angle);
-            controller.move_relative(.0,.0,.0,angle);
+            controller.move_relative(.0,.0,.0,angle, true);
         }
     }else{
         if(dist2 < 1){
             double angle = (atan(dist2/minDist))*RAD_TO_DEG;
             ROS_INFO("Angle2%f",angle);
-            controller.move_relative(.0,.0,.0,angle);
+            controller.move_relative(.0,.0,.0,angle, true);
         }
     }
 
@@ -89,73 +95,113 @@ void RectangleExplorer::explore() {
         ros::spinOnce();
         if(state == TRACKING) break;
     }
-    ROS_WARN("MARKER DETECTED!!!!!!");
 
+}
+
+void RectangleExplorer::track() {
+    const double transition_distance = 0.5; // [m]
+
+    // euclidian distance to marker
+    cv::Vec3f dir = marker_offset - controller.get_position();
+    double error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
+    while (ros::ok() && error > transition_distance && state == TRACKING) {
+        controller.move_relative(dir[0], dir[1], 0, 0, true);
+        error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
+        ros::spinOnce();
+
+        if(get_aruco_last_seen() > 2) {
+            state = EXPLORATION;
+            break;
+        }
+    }
     if(state == TRACKING) {
-        // euclidian distance to marker
-        double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-        while (ros::ok() && error > 0.1) {
-            ROS_INFO("Tracking mode %.2f", error);
-            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0, false);
-            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-            ros::spinOnce();
+        state = LANDING;
+    }
+}
+
+void RectangleExplorer::land() {
+    // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
+    // TODO An issue with this might be that we can no longer do the x,y error correction if we are already too close
+    //  to the marker, and we can no longer see it.
+    //   a) We can either try to make again the marker with a marker inside, or
+    //   b) for now, we can just figure out what height and x,y error is acceptable before we are no longer able to see it, or
+    //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
+    //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
+
+    cv::Vec3f dir = marker_offset - controller.get_position();
+    double error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
+    int last_id = -1;
+
+    while (ros::ok() && error > 0.05 && state == LANDING) {
+        // if new marker since last movement...
+        if(last_id != marker_offset_id) {
+            double z_offset = -0.05;
+            if(controller.get_z() + z_offset <= 0.15) {
+                z_offset = 0.15 - (controller.get_z() + z_offset);
+            }
+            controller.move_relative(dir[0], dir[1], z_offset, 0, true);
+            last_id = marker_offset_id;
+        }
+        // ... no new marker since last update -> move up
+        else if(get_aruco_last_seen() < 2 && controller.get_z() <= 1.8) { // [s] && [m]
+            //controller.move_relative(0, 0, 0.10, 0, true);
+        } else {
+            state = EXPLORATION;
+            break;
         }
 
-        // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
-        // TODO An issue with this might be that we can no longer do the x,y error correction if we are already too close
-        //  to the marker, and we can no longer see it.
-        //   a) We can either try to make again the marker with a marker inside, or
-        //   b) for now, we can just figure out what height and x,y error is acceptable before we are no longer able to see it, or
-        //   c) we can try to tell the Aruco detector to start looking for a 2x2 marker instead of a 3x3 marker if that is only
-        //      visible, because then we don't need to do any weird filtering for the marker in marker thing,
-        while (ros::ok() && (error > 0.05 && controller.get_z() < 0.15)) {
-            cv::Vec4d platform_velocity = ekf.get_velocity();
-            double height = marker_offset_z + 0.15;
-            controller.move_relative(marker_offset_x, marker_offset_y, height, 0, false);
-            ros::spinOnce();
-            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-            ROS_INFO("error %.2f [m], v_x=%.2f ±%.2f [m/s], v_y=%.2f ±%.2f [m/s]", error, platform_velocity[0],
-                     platform_velocity[2], platform_velocity[1], platform_velocity[3]);
+        ros::spinOnce();
+
+        dir = marker_offset - controller.get_position();
+        error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
+
+        if(get_aruco_last_seen() <= 1) {
+            if(controller.get_z() <= 0.15 && error <= 0.05) {
+                state = DONE;
+                break;
+            }
         }
 
-        controller.stop();
+        /*cv::Vec4d platform_velocity = ekf.get_velocity();
+        ROS_INFO("error %.2f [m], v_x=%.2f ±%.2f [m/s], v_y=%.2f ±%.2f [m/s]", error, platform_velocity[0],
+                 platform_velocity[2], platform_velocity[1], platform_velocity[3]);*/
+
     }
 
+    controller.stop();
 
 }
 
 void RectangleExplorer::demo() {
 
-    controller.arm_drone();
-    controller.takeoff(0.5);
-
-    while (ros::ok() && state == EXPLORATION) {
-        if(controller.get_distance_measurement(FORWARD) < 0.2) {
-            controller.land();
-            ROS_WARN("land because wall");
-            return;
+    ros::Rate rate(2);
+    while (ros::ok()) {
+        ROS_INFO("    %.2f %.2f %.2f", controller.get_x(), controller.get_y(), controller.get_z());
+        if(marker_offset_id != -1) {
+            ROS_INFO("+   %.2f %.2f %.2f", marker_offset[0], marker_offset[1], marker_offset[2]);
+            cv::Vec3f dir = marker_offset - controller.get_position();
+            ROS_INFO(" -> %.2f %.2f %.2f", dir[0], dir[1], dir[2]);
         }
-        controller.move_relative(0.1, 0, 0, 0);
         ros::spinOnce();
+        rate.sleep();
     }
 
-    if(state == TRACKING) {
-        double error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
+    /*controller.arm_drone();
+    controller.takeoff(0.5);
 
-        // first we do some crude translation correction for x and y until the error is less than 20 [cm]
-        while (ros::ok() && error > 0.2) {
-            controller.move_relative(marker_offset_x, marker_offset_y, 0, 0);
-            ros::spinOnce();
-            error = sqrt(pow(marker_offset_x, 2) + pow(marker_offset_y, 2));
-            ROS_INFO("Target area error %.2fm", error);
-        }
-
-
+    int i = 30;
+    while (ros::ok() && i> 0) {
+        controller.hover(1);
+        cv::Vec4d platform_velocity = ekf.get_velocity();
+        ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0],
+                 platform_velocity[2], platform_velocity[1], platform_velocity[3]);
+        ros::spinOnce();
+        i--;
     }
 
     if (ros::ok()) {
         controller.land();
-    }
+    }*/
 }
 
 void RectangleExplorer::get_relative_left_right(Direction lastDir, Direction& d1, Direction& d2){
@@ -197,17 +243,25 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
         this->state = TRACKING;
         this->controller.cancel_movement();
     }
+
     if(this->state == TRACKING) {
         this->aruco_pose = pose;
-        marker_offset_x = -pose->position.x;
-        marker_offset_y = -pose->position.y;
-        marker_offset_z = -pose->position.z;
+        marker_offset = cv::Vec3f(controller.get_x() + pose->position.x,
+                                  controller.get_y() + pose->position.y,
+                                  -pose->position.z);
+        this->marker_offset_id++;
+        this->marker_last_seen = std::chrono::system_clock::now();
 
         // --- update ekf
-        if(this->ekf.get_last_seen() >= 10) {
+        /*if(this->ekf.get_last_seen() >= 10) {
+            ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
             this->ekf.reset();
         }
-
-        this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);
+        this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
     }
+}
+
+long RectangleExplorer::get_aruco_last_seen() {
+    return std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - marker_last_seen))
+            .count();
 }

@@ -172,14 +172,14 @@ int main(int argc, char **argv) {
 
                         marker_pose_msg.marker_id = markerIds.at(i);
 
-                        marker_pose_msg.position.x = tvec[0] * -1;
+                        marker_pose_msg.position.x = tvec[0];
                         marker_pose_msg.position.y = tvec[1];
-                        marker_pose_msg.position.z = tvec[2];
+                        marker_pose_msg.position.z = -tvec[2];
 
                         // ---
-                        x = tvec[0] * -1;
-                        y = tvec[1];
-                        z = tvec[2];
+                        x = marker_pose_msg.position.x;
+                        y = marker_pose_msg.position.y;
+                        z = marker_pose_msg.position.z;
                         // ---
 
                         pose_pub.publish(marker_pose_msg);

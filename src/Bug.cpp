@@ -75,7 +75,7 @@ void Bug::explore() {
     // Do Exploration
     while (ros::ok() && state == EXPLORATION){
         controller.move_until_object(dir1,minDist);
-        Bug::avoid();
+        avoid();
         /*if(state == TRACKING) break;
         rectangleExplorer.hmove_in_dir(goTo);
         if(state == TRACKING) break;
@@ -124,17 +124,17 @@ void Bug::explore() {
 
 }
 
-void Bug:avoid(){
-    x = marker_offset_x;
-    y = marker_offset_y;
+void Bug::avoid(){
+    auto x = marker_offset_x;
+    auto y = marker_offset_y;
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
     if(closest == FORWARD || closest == BACK){
         controller.move_relative(.0,.0,.0,90);
     }
     closest = controller.get_closest_direction(directions);
-    ROS_INFO(closest);
-    controller.stop
+    ROS_INFO("closest %d",  closest);
+    controller.stop();
  /*   while( !targetfound || (x!=marker_offset_x && y!=marker_offset_y){
         // TODO target check
         while()

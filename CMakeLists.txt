@@ -131,7 +131,7 @@ include_directories(
 add_library(${PROJECT_NAME}
     src/flightcontroller.cpp
     src/rectangleExplorer.cpp
-        src/ArucoEKF.cpp src/ArucoEKF.h)
+        src/ArucoEKF.cpp src/Bug.cpp)
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
