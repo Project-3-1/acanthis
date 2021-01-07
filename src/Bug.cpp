@@ -19,7 +19,7 @@ Bug::Bug(ros::NodeHandle& node, double frequency)
     // ---
 
     this->hoverHeight = 0.4;
-    this->minDist = 0.5;
+    this->minDist = 0.2;
     this->waySize = 0.5;
     this->distMoved = 0;
     this->inFirstLoop = true;
@@ -95,6 +95,7 @@ void Bug::explore() {
 }
 
 void Bug::avoid(){
+    auto step = 0.05;
     auto x = controller.get_x();
     auto y = controller.get_y();
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
@@ -110,9 +111,9 @@ void Bug::avoid(){
         // TODO target check
         while(closest == controller.get_closest_direction(directions)){
             if(state == TRACKING) break;
-            controller.move_until_object(FORWARD,minDist);
+            controller.move_in_direction(FORWARD,step);
             if(controller.get_distance_measurement(closest) > minDist){
-                controller.move_until_object(closest,minDist);
+                controller.move_in_direction(closest,step);
             }
         }
         if(closest != controller.get_closest_direction(directions)){
