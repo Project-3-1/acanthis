@@ -99,15 +99,15 @@ void Bug::explore() {
 }
 
 void Bug::avoid(){
-    auto x = marker_offset_x;
-    auto y = marker_offset_y;
+    auto x = controller.get_x();
+    auto y = controller.get_y();
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
     if(closest == FORWARD || closest == BACK){
         controller.move_relative(.0,.0,.0,90);
     }
     closest = controller.get_closest_direction(directions);
-    while( state == EXPLORATION || (x!=position.x && y!=position.y){
+    while( state == EXPLORATION /*|| (x!=controller.get_x() && y!=controller.get_y()*/){
         if(state == TRACKING) break;
         // TODO target check
         while(closest == controller.get_closest_direction(directions)){
@@ -125,6 +125,8 @@ void Bug::avoid(){
             controller.move_relative(.0,.0,.0,dir*90);
             closest = controller.get_closest_direction(directions);
         }
+
+        ros::spinOnce();
     }
 }
 
@@ -197,6 +199,7 @@ void Bug::move_in_dir(Direction dir) {
 }
 
 void Bug::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& pose) {
+    ROS_INFO("marker detected");
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
         this->controller.cancel_movement();
