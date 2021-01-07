@@ -17,7 +17,7 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
     }
     // ---
 
-    this->hoverHeight = 0.3;
+    this->hoverHeight = 0.5;
     this->minDist = 0.5;
     this->waySize = 0.5;
     this->distMoved = 0;
@@ -103,7 +103,7 @@ void RectangleExplorer::explore() {
 }
 
 void RectangleExplorer::track() {
-    const double transition_distance = 0.5; // [m]
+    const double transition_distance = 0.05; // [m]
 
     int last_id = -1;
     // euclidian distance to marker
@@ -111,10 +111,11 @@ void RectangleExplorer::track() {
     double error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
     while (ros::ok() && error > transition_distance && state == TRACKING) {
         ROS_INFO("error %.2f -> %.2f %.2f %.2f", error, dir[0], dir[1], dir[2]);
-        controller.move_relative(dir[0], dir[1], 0, 0, true);
+        controller.move_relative(dir[0], dir[1], 0, 0, false);
 
         ros::spinOnce();
         if(last_id != marker_offset_id) {
+            last_id = marker_offset_id;
             dir = marker_offset;
         }
 
@@ -142,18 +143,19 @@ void RectangleExplorer::land() {
     while (ros::ok() && error > 0.05 ) {
         error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
         // if new marker since last movement...
-        if(last_id != marker_offset_id) {
+        if(last_id != this->marker_offset_id) {
             double z_offset = -0.05;
-            ROS_INFO("CORRECT");
             if(controller.get_z() + z_offset <= 0.15) {
                 z_offset = 0.15 - (controller.get_z() + z_offset);
             }
-            controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, true);
-            last_id = marker_offset_id;
-        }
-        // ... no new marker since last update -> move up
-        else if(get_aruco_last_seen() < 2 && controller.get_z() <= 1.8) { // [s] && [m]
+            if(z_offset < -.1) {
+                z_offset = -.1;
+            }
+            controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, false);
+            last_id = this->marker_offset_id;
+        } else if(get_aruco_last_seen() < 2 && controller.get_z() <= 1.8) { // [s] && [m]
             ROS_ERROR("what");
+            controller.hover(1);
             //controller.move_relative(0, 0, 0.10, 0, true);
         } else {
             ROS_INFO("EXPLORATION");
@@ -188,8 +190,6 @@ void RectangleExplorer::demo() {
         ROS_INFO("    %.2f %.2f %.2f", controller.get_x(), controller.get_y(), controller.get_z());
         if(marker_offset_id != -1) {
             ROS_INFO("+   %.2f %.2f %.2f", marker_offset[0], marker_offset[1], marker_offset[2]);
-            cv::Vec3f dir = marker_offset - controller.get_position();
-            ROS_INFO(" -> %.2f %.2f %.2f", dir[0], dir[1], dir[2]);
         }
         ros::spinOnce();
         rate.sleep();
@@ -253,21 +253,19 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
         this->controller.cancel_movement();
     }
 
-    if(this->state == TRACKING) {
-        this->aruco_pose = pose;
-        marker_offset = cv::Vec3f(-pose->position.x,
-                                  -pose->position.y,
-                                  -pose->position.z);
-        this->marker_offset_id++;
-        this->marker_last_seen = std::chrono::system_clock::now();
+    this->aruco_pose = pose;
+    marker_offset = cv::Vec3f(pose->position.x,
+                              pose->position.y,
+                              -pose->position.z);
+    this->marker_offset_id += 1;
+    this->marker_last_seen = std::chrono::system_clock::now();
 
-        // --- update ekf
-        /*if(this->ekf.get_last_seen() >= 10) {
-            ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
-            this->ekf.reset();
-        }
-        this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
+    // --- update ekf
+    /*if(this->ekf.get_last_seen() >= 10) {
+        ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
+        this->ekf.reset();
     }
+    this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
 }
 
 long RectangleExplorer::get_aruco_last_seen() {

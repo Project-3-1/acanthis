@@ -87,7 +87,7 @@ void FlightController::takeoff(float height) {
  * Automatically lands the drone at the current position.
  */
 void FlightController::land() {
-    if(LANDING_HEIGHT - pose.position.z < 0) {
+    if(get_z() > LANDING_HEIGHT) {
         move_relative(0, 0, LANDING_HEIGHT - pose.position.z, 0);
     }
     stop();
@@ -247,8 +247,8 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
-    const double max_x = 0.3; // 1; // in m/s
-    const double max_y = 0.3; // 1; // in m/s
+    const double max_x = 1; // 1; // in m/s
+    const double max_y = 1; // 1; // in m/s
     const double max_z = 0.25; // in m/s
     const double max_yaw = 45; // in deg/s
 
