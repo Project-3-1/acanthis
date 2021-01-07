@@ -1,6 +1,7 @@
 #ifndef SRC_RECTANGLEEXPLORER_H
 #define SRC_RECTANGLEEXPLORER_H
 
+#include <chrono>
 #include "flightcontroller.h"
 #include "ros/ros.h"
 #include "crazyflie_driver/Position.h"
@@ -11,9 +12,10 @@
 #include "ArucoEKF.h"
 
 enum State {
-    EXPLORATION,
-    TRACKING,
-    DONE
+    EXPLORATION = 0,
+    TRACKING = 1,
+    LANDING = 2,
+    DONE = 3
 };
 
 class RectangleExplorer {
@@ -23,9 +25,10 @@ class RectangleExplorer {
     FlightController controller;
 
     ros::Subscriber aruco_pose_sub;
-    double marker_offset_x;
-    double marker_offset_y;
-    double marker_offset_z;
+
+    std::chrono::time_point<std::chrono::system_clock> marker_last_seen = std::chrono::system_clock::from_time_t(0);
+    int marker_offset_id = 0;
+    cv::Vec3f marker_offset;
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
 
@@ -38,7 +41,15 @@ class RectangleExplorer {
     bool inFirstLoop;
 public:
     RectangleExplorer(ros::NodeHandle& node, double frequency);
+
+    void run();
+
     void explore();
+    void track();
+    void land();
+
+    long get_aruco_last_seen();
+
     void demo();
 
 private:

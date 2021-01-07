@@ -110,6 +110,11 @@ double FlightController::get_distance_measurement(Direction direction) {
     return range_measurements[direction] * MM_TO_M;
 }
 
+cv::Vec3f FlightController::get_position() {
+    return cv::Vec3f(get_x(), get_y(), get_z());
+}
+
+
 double FlightController::get_x() {
     return pose.position.x;
 }
@@ -147,7 +152,7 @@ void FlightController::hover(double time) {
     geometry_msgs::PoseStamped::_pose_type cp = this->pose;
     ros::Time start = ros::Time::now();
     while (true) {
-        move_absolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation)); //todo fix
+        move_absolute(cp.position.x, cp.position.y, cp.position.z, _calculate_yaw(cp.orientation), true); //todo fix
 
         ros::Time now = ros::Time::now();
         if((now - start).toSec() >= time) {
@@ -198,7 +203,6 @@ void FlightController::move_in_direction(Direction direction, double distance) {
     }
 
     double delta_distance = distance;
-    ROS_INFO("DELTA_DISTANCE %f", delta_distance);
     if(delta_distance > 0) {
         move_relative(x * delta_distance, y * delta_distance, z * delta_distance, 0);
     }
@@ -243,9 +247,9 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
-    const double max_x = 1; // in m/s
-    const double max_y = 1; // in m/s
-    const double max_z = 0.6; // in m/s
+    const double max_x = 0.3; // 1; // in m/s
+    const double max_y = 0.3; // 1; // in m/s
+    const double max_z = 0.25; // in m/s
     const double max_yaw = 45; // in deg/s
 
     // --- current values
@@ -259,14 +263,13 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     double dy = y - cy;
     double dz = z - cz;
     double dyaw = (yaw-cyaw);// + 3 * M_PI) % 2 * M_PI - M_PI_2;
-    ROS_INFO("delta yaw: %.2f", dyaw);
 
     // --- we adjust the z axis first because it is slow
     if (abs(dz) > 0) {
         double z_steps = abs(dz / max_z);
         double z_speed = dz / z_steps;
         while (ros::ok()) {
-            ROS_INFO(" dz: %f, max_z: %f, z steps: %f", dz, max_z, ceil(frequency * z_steps));
+//            ROS_INFO(" dz: %f, max_z: %f, z steps: %f", dz, max_z, ceil(frequency * z_steps));
             for (int i = 1; i <= abs(ceil(frequency * z_steps)); i++) {
                 _publish_position(cx, cy, cz + (z_speed * i) / frequency, cyaw);
                 ros::spinOnce();
@@ -278,7 +281,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
 
     // --- adjust x and z axis
     double max_steps = std::max(abs(dx / max_x), abs(dy / max_y));
-    ROS_INFO("max steps for x and z axis: %f", max_steps);
+    //ROS_INFO("max steps for x and z axis: %f", max_steps);
 
     if(max_steps > 0) {
         double x_speed = dx / max_steps;
@@ -315,7 +318,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
         _publish_position(x, y, z, yaw);
         ros::spinOnce();
 
-        if(error_correction) {
+        if(!error_correction) {
             break;
         }
 
@@ -328,7 +331,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
         if((error < 0.05 && yaw_error <= 10) || is_move_cancelled()) {
             break;
         }
-        ROS_WARN("Error still too big -> dis_err: %.2f, yaw_err: %.2fdeg", error, yaw_error);
+        //ROS_WARN("Error still too big -> dis_err: %.2f, yaw_err: %.2fdeg", error, yaw_error);
         rate.sleep();
     }
     //TODO

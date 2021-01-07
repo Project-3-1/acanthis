@@ -14,9 +14,8 @@ ArucoEKF::ArucoEKF() : state(stateSize, 1, CV_32F), meas(measSize, 1, CV_32F) {
 }
 
 void ArucoEKF::update(double x, double y) {
-    double precTick = ticks;
-    ticks = (double) getTickCount();
-    double dT = (ticks - precTick) / getTickFrequency(); //seconds
+    double dT = get_last_seen();
+    this->ticks = (double) getTickCount();
 
     if (found)
     {
@@ -49,7 +48,7 @@ void ArucoEKF::update(double x, double y) {
         kf.correct(meas);
     }
     //cout << "Measure matrix:" << meas << endl;
-    cout << "Error matrix:" << endl << kf.errorCovPost << endl;
+    //cout << "Error matrix:" << endl << kf.errorCovPost << endl;
 
 }
 
@@ -92,7 +91,7 @@ Vec4d ArucoEKF::get_position() {
     return Vec4d(
             this->state.at<float>(0), // x
             this->state.at<float>(1), // y
-            2 * sqrt(kf.errorCovPost.at<float>(0)), // x,  2x std
+            2 * sqrt(kf.errorCovPost.at<float>(0)), // x, 2x std
             2 * sqrt(kf.errorCovPost.at<float>(5)) // y, 2x std
     );
 }
@@ -104,6 +103,10 @@ cv::Vec4d ArucoEKF::get_velocity() {
             2 * sqrt(kf.errorCovPost.at<float>(10)), // v_x, 2x std
             2 * sqrt(kf.errorCovPost.at<float>(15)) // v_y, 2x std
     );
+}
+
+double ArucoEKF::get_last_seen() {
+    return (getTickCount() - this->ticks) / getTickFrequency();
 }
 
 

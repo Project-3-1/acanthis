@@ -6,6 +6,7 @@
 #include "crazyflie_driver/Position.h"
 #include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
+#include <opencv4/opencv2/opencv.hpp>
 
 const double DEG_TO_RAD = M_PI / 180.0;
 const double RAD_TO_DEG = 180.0 / M_PI;
@@ -53,6 +54,7 @@ public:
     void turn_left();
     void turn_right();
 
+    cv::Vec3f get_position();
     double get_x();
     double get_y();
     double get_z();

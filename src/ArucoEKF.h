@@ -40,6 +40,8 @@ public:
 
     cv::Vec4d get_position();
     cv::Vec4d get_velocity();
+
+    double get_last_seen();
 };
 
 
