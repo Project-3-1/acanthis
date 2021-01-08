@@ -17,7 +17,7 @@ RectangleExplorer::RectangleExplorer(ros::NodeHandle& node, double frequency)
     }
     // ---
 
-    this->hoverHeight = 0.5;
+    this->hoverHeight = 0.9;
     this->minDist = 0.5;
     this->waySize = 0.5;
     this->distMoved = 0;
@@ -103,7 +103,7 @@ void RectangleExplorer::explore() {
 }
 
 void RectangleExplorer::track() {
-    const double transition_distance = 0.05; // [m]
+    const double transition_distance = 0.5; // [m]
 
     int last_id = -1;
     // euclidian distance to marker
@@ -111,7 +111,7 @@ void RectangleExplorer::track() {
     double error = sqrt(pow(dir[0], 2) + pow(dir[1], 2));
     while (ros::ok() && error > transition_distance && state == TRACKING) {
         ROS_INFO("error %.2f -> %.2f %.2f %.2f", error, dir[0], dir[1], dir[2]);
-        controller.move_relative(dir[0], dir[1], 0, 0, false);
+        controller.move_relative(dir[0], dir[1], 0, 0, true);
 
         ros::spinOnce();
         if(last_id != marker_offset_id) {
@@ -151,11 +151,10 @@ void RectangleExplorer::land() {
             if(z_offset < -.1) {
                 z_offset = -.1;
             }
-            controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, false);
+            controller.move_relative(marker_offset[0], marker_offset[1], -0.02, 0, false);
             last_id = this->marker_offset_id;
-        } else if(get_aruco_last_seen() < 2 && controller.get_z() <= 1.8) { // [s] && [m]
+        } else if(get_aruco_last_seen() < 3 && controller.get_z() <= 1.8) { // [s] && [m]
             ROS_ERROR("what");
-            controller.hover(1);
             //controller.move_relative(0, 0, 0.10, 0, true);
         } else {
             ROS_INFO("EXPLORATION");
@@ -272,3 +271,4 @@ long RectangleExplorer::get_aruco_last_seen() {
     return std::chrono::duration_cast<std::chrono::seconds>((std::chrono::system_clock::now() - marker_last_seen))
             .count();
 }
+

@@ -14,8 +14,6 @@
 using namespace std;
 using namespace cv;
 
-const bool _ENABLE_CIRCLE_CUTOUT = false;
-
 static bool read_calibration(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
 {
     FileStorage fs(filename, FileStorage::READ);
@@ -42,6 +40,37 @@ static int get_dictionary(int value) {
         return -1;
     }
 }
+
+static void calculate_avg_std(std::vector<cv::Vec3f>& data, cv::Vec3f& mean, cv::Vec3f& std) {
+    cv::Vec3f sum(0, 0, 0);
+    for(auto & i : data) {
+        sum[0] += i[0];
+        sum[1] += i[1];
+        sum[2] += i[2];
+    }
+
+    mean[0] = sum[0] / data.size();
+    mean[1] = sum[1] / data.size();
+    mean[2] = sum[2] / data.size();
+
+    for(auto &i : data) {
+        std[0] += pow(i[0] - mean[0], 2);
+        std[1] += pow(i[1] - mean[1], 2);
+        std[2] += pow(i[2] - mean[2], 2);
+    }
+
+    std[0] = sqrt(std[0] / data.size());
+    std[1] = sqrt(std[1] / data.size());
+    std[2] = sqrt(std[2] / data.size());
+
+}
+
+
+static int circle_buffer_index = 0;
+static int circle_buffer_length = 10;
+static std::vector<cv::Vec3f> marker_positions;
+static cv::Vec3f std_marker;
+static cv::Vec3f mean_marker;
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "aruco_detector");
@@ -128,13 +157,6 @@ int main(int argc, char **argv) {
             Mat image, original_image;
             inputVideo.retrieve(image);
 
-            // cutout circle
-            if(_ENABLE_CIRCLE_CUTOUT) {
-                Mat mask = cv::Mat::zeros(cv::Size(image.cols, image.rows), image.type());
-                cv::circle(mask,cv::Point2i(320, 240), 200,cv::Scalar(255,255,255),
-                           -1);
-                cv::bitwise_and(image, mask, image);
-            }
             //---
             image.copyTo(original_image);
 
@@ -151,7 +173,8 @@ int main(int argc, char **argv) {
             std::vector<std::vector<Point2f> > markerCorners;
             aruco::detectMarkers(image, dictionary, markerCorners, markerIds, params);
 
-            double x, y, z;
+            double text_x, text_y, text_z;
+            bool text_accepted = false;
             if (!markerIds.empty()) {
                 std::vector<Vec3d> rvecs, tvecs;
                 aruco::estimatePoseSingleMarkers(markerCorners, marker_size, cameraMatrixAfterFisheye, distCoeffsAfterFisheye, rvecs, tvecs);
@@ -164,33 +187,62 @@ int main(int argc, char **argv) {
                     }
 
                     for (int i = 0; i < markerIds.size(); i++) {
+
+                        text_accepted = false;
                         //Vec<double,3> rvec = rvecs[i];
                         Vec<double,3> tvec = tvecs[i];
 
-                        marker_pose_msg.header.seq++;
-                        marker_pose_msg.header.stamp = ros::Time::now();
+                        float x = tvec[0];
+                        float y = tvec[0];
+                        float z = tvec[1];
 
-                        marker_pose_msg.marker_id = markerIds.at(i);
+                        marker_positions[circle_buffer_index] = cv::Vec3f(x, y, z);
+                        circle_buffer_index = (circle_buffer_index + 1) % circle_buffer_length;
 
-                        marker_pose_msg.position.x = tvec[0];
-                        marker_pose_msg.position.y = -tvec[1];
-                        marker_pose_msg.position.z = -tvec[2];
+                        if(marker_positions.size() == circle_buffer_length) {
+                            calculate_avg_std(marker_positions, mean_marker, std_marker);
+
+                            // std check - 95% interval
+                            if(
+                                    (x <= (mean_marker[0] + 2 * std_marker[0]) && x >= (mean_marker[0] - 2 * std_marker[0])) &&
+                                    (y <= (mean_marker[1] + 2 * std_marker[1]) && y >= (mean_marker[1] - 2 * std_marker[1])) &&
+                                    (z <= (mean_marker[2] + 2 * std_marker[2]) && z >= (mean_marker[2] - 2 * std_marker[2]))
+                                )   {
+
+                                text_accepted = true;
+                                marker_pose_msg.header.seq++;
+                                marker_pose_msg.header.stamp = ros::Time::now();
+
+                                marker_pose_msg.marker_id = markerIds.at(i);
+
+                                marker_pose_msg.position.x = x;
+                                marker_pose_msg.position.y = y;
+                                marker_pose_msg.position.z = z;
+                                pose_pub.publish(marker_pose_msg);
+                            }
+                        }
+
+
 
                         // ---
-                        x = marker_pose_msg.position.x;
-                        y = marker_pose_msg.position.y;
-                        z = marker_pose_msg.position.z;
+                        text_x = marker_pose_msg.position.x;
+                        text_y = marker_pose_msg.position.y;
+                        text_z = marker_pose_msg.position.z;
                         // ---
 
-                        pose_pub.publish(marker_pose_msg);
                     }
                 }
             }
 
             if(publish_debug_image) {
-                putText(image, format("x: %.2f", x), Point(10, 50), FONT_HERSHEY_COMPLEX, 1, CV_RGB(255,0, 0), 3);
-                putText(image, format("y: %.2f", y), Point(10, 80), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 3);
-                putText(image, format("z: %.2f", z), Point(10, 110), FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
+                putText(image, format("x: %.2f", text_x), Point(10, 50),
+                        FONT_HERSHEY_COMPLEX, 1, CV_RGB(255,0, 0), 3);
+                putText(image, format("y: %.2f", text_y), Point(10, 80),
+                        FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 3);
+                putText(image, format("z: %.2f", text_z), Point(10, 110),
+                        FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
+                putText(image, format("%s", text_accepted ? "Accepted" : "Rejected"), Point(10, 130),
+                        FONT_HERSHEY_COMPLEX, 0.8, CV_RGB(255 * !text_accepted,255 * text_accepted , 0), 3);
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
