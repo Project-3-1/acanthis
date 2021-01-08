@@ -39,6 +39,7 @@ void RectangleExplorer::run() {
 
     while (ros::ok() && state != DONE) {
         //ROS_INFO("transition state: %d", state);
+
         switch (state) {
             case EXPLORATION: explore();
                 continue;
@@ -47,12 +48,15 @@ void RectangleExplorer::run() {
             case LANDING: land();
                 continue;
             case DONE:
-                continue;
+                break;
         }
     }
 }
 
 void RectangleExplorer::explore() {
+    controller.hover(2.5);
+    controller.move_relative(0, 0, hoverHeight - controller.get_z(), 0, true);
+
     // Find Closest Wall
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
@@ -137,24 +141,21 @@ void RectangleExplorer::land() {
     // TODO An issue with this might be that we can no longer do the x,y error ECo any weird filtering for the marker in marker thing,
 
     ros::spinOnce();
-    double error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
+    //double error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
     int last_id = -1;
 
-    while (ros::ok() && error > 0.05 ) {
-        error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
+    while (ros::ok() ) {
+        //error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
         // if new marker since last movement...
         if(last_id != this->marker_offset_id) {
-            double z_offset = -0.05;
+            double z_offset = -0.07;
             if(controller.get_z() + z_offset <= 0.15) {
-                z_offset = 0.15 - (controller.get_z() + z_offset);
+                z_offset = 0.07  - (controller.get_z() + z_offset);
             }
-            if(z_offset < -.1) {
-                z_offset = -.1;
-            }
-            controller.move_relative(marker_offset[0], marker_offset[1], -0.02, 0, false);
+            controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, true);
             last_id = this->marker_offset_id;
-        } else if(get_aruco_last_seen() < 3 && controller.get_z() <= 1.8) { // [s] && [m]
-            ROS_ERROR("what");
+        } else if(get_aruco_last_seen() < 2 && controller.get_z() <= hoverHeight) { // [s] && [m]
+            controller.move_relative(0, 0, 0, 0, true);
             //controller.move_relative(0, 0, 0.10, 0, true);
         } else {
             ROS_INFO("EXPLORATION");
@@ -163,6 +164,11 @@ void RectangleExplorer::land() {
         }
 
         ros::spinOnce();
+
+        if(controller.get_z() <= 0.3) {
+            state = DONE;
+            break;
+        }
 
         /*if(get_aruco_last_seen() <= 1) {
             if(controller.get_z() <= 0.15 && error <= 0.05) {
@@ -186,10 +192,6 @@ void RectangleExplorer::demo() {
 
     ros::Rate rate(2);
     while (ros::ok()) {
-        ROS_INFO("    %.2f %.2f %.2f", controller.get_x(), controller.get_y(), controller.get_z());
-        if(marker_offset_id != -1) {
-            ROS_INFO("+   %.2f %.2f %.2f", marker_offset[0], marker_offset[1], marker_offset[2]);
-        }
         ros::spinOnce();
         rate.sleep();
     }

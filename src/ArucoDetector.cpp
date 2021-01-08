@@ -67,8 +67,8 @@ static void calculate_avg_std(std::vector<cv::Vec3f>& data, cv::Vec3f& mean, cv:
 
 
 static int circle_buffer_index = 0;
-static int circle_buffer_length = 10;
-static std::vector<cv::Vec3f> marker_positions;
+static int circle_buffer_length = 15;
+static std::vector<cv::Vec3f> marker_positions(circle_buffer_length);
 static cv::Vec3f std_marker;
 static cv::Vec3f mean_marker;
 
@@ -193,20 +193,18 @@ int main(int argc, char **argv) {
                         Vec<double,3> tvec = tvecs[i];
 
                         float x = tvec[0];
-                        float y = tvec[0];
-                        float z = tvec[1];
-
-                        marker_positions[circle_buffer_index] = cv::Vec3f(x, y, z);
-                        circle_buffer_index = (circle_buffer_index + 1) % circle_buffer_length;
+                        float y = -tvec[1];
+                        float z = -tvec[2];
 
                         if(marker_positions.size() == circle_buffer_length) {
                             calculate_avg_std(marker_positions, mean_marker, std_marker);
 
                             // std check - 95% interval
+                            const double mul = 2;
                             if(
-                                    (x <= (mean_marker[0] + 2 * std_marker[0]) && x >= (mean_marker[0] - 2 * std_marker[0])) &&
-                                    (y <= (mean_marker[1] + 2 * std_marker[1]) && y >= (mean_marker[1] - 2 * std_marker[1])) &&
-                                    (z <= (mean_marker[2] + 2 * std_marker[2]) && z >= (mean_marker[2] - 2 * std_marker[2]))
+                                    (x <= (mean_marker[0] + mul * std_marker[0]) && x >= (mean_marker[0] - mul * std_marker[0])) &&
+                                    (y <= (mean_marker[1] + mul * std_marker[1]) && y >= (mean_marker[1] - mul * std_marker[1])) &&
+                                    (z <= (mean_marker[2] + mul * std_marker[2]) && z >= (mean_marker[2] - mul * std_marker[2]))
                                 )   {
 
                                 text_accepted = true;
@@ -219,9 +217,12 @@ int main(int argc, char **argv) {
                                 marker_pose_msg.position.y = y;
                                 marker_pose_msg.position.z = z;
                                 pose_pub.publish(marker_pose_msg);
+
                             }
                         }
 
+                        marker_positions[circle_buffer_index] = cv::Vec3f(x, y, z);
+                        circle_buffer_index = (circle_buffer_index + 1) % circle_buffer_length;
 
 
                         // ---
@@ -242,7 +243,7 @@ int main(int argc, char **argv) {
                 putText(image, format("z: %.2f", text_z), Point(10, 110),
                         FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
                 putText(image, format("%s", text_accepted ? "Accepted" : "Rejected"), Point(10, 130),
-                        FONT_HERSHEY_COMPLEX, 0.8, CV_RGB(255 * !text_accepted,255 * text_accepted , 0), 3);
+                        FONT_HERSHEY_COMPLEX, 0.5, CV_RGB(255 * !text_accepted,255 * text_accepted , 0), 1);
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
