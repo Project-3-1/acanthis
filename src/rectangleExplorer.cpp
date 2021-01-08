@@ -137,20 +137,18 @@ void RectangleExplorer::track() {
 }
 
 void RectangleExplorer::land() {
-    // now we do translation for x,y (5 [cm]), and z until it is less than 15 [cm]
-    // TODO An issue with this might be that we can no longer do the x,y error ECo any weird filtering for the marker in marker thing,
+    const double decent_speed = 0.07;
+    const double drop_height = 0.3;
 
     ros::spinOnce();
-    //double error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
     int last_id = -1;
 
     while (ros::ok() ) {
-        //error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
         // if new marker since last movement...
         if(last_id != this->marker_offset_id) {
-            double z_offset = -0.07;
-            if(controller.get_z() + z_offset <= 0.15) {
-                z_offset = 0.07  - (controller.get_z() + z_offset);
+            double z_offset = -decent_speed;
+            if(controller.get_z() + z_offset <= drop_height) {
+                z_offset = decent_speed  - (controller.get_z() + z_offset);
             }
             controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, true);
             last_id = this->marker_offset_id;
@@ -165,7 +163,7 @@ void RectangleExplorer::land() {
 
         ros::spinOnce();
 
-        if(controller.get_z() <= 0.3) {
+        if(controller.get_z() <= drop_height) {
             state = DONE;
             break;
         }

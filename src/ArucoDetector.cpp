@@ -118,9 +118,6 @@ int main(int argc, char **argv) {
     // --- publisher
     ros::Publisher pose_pub = node.advertise<acanthis::ArucoPose>("pose", 1);
 
-    ros::Publisher raw_image_pub = node.advertise<sensor_msgs::Image>("image/raw", 1);
-    sensor_msgs::ImagePtr raw_image_msg;
-
     ros::Publisher debug_image_pub;
     sensor_msgs::ImagePtr debug_image_msg;
     if(publish_debug_image) {
@@ -153,19 +150,46 @@ int main(int argc, char **argv) {
         Ptr<aruco::Dictionary> dictionary = aruco::getPredefinedDictionary(DICTIONARY);
         Ptr<aruco::DetectorParameters> params = aruco::DetectorParameters::create();
 
+        bool first_image = true;
+        cv::Mat map1, map2;
+
+        //---
+        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
+        clahe->setClipLimit(4);
+        cv::Mat dst;
+
         while (ros::ok() && inputVideo.grab()) {
-            Mat image, original_image;
+            Mat image;
             inputVideo.retrieve(image);
 
-            //---
-            image.copyTo(original_image);
-
-            // undistort image
-            //undistorted(image, undistorted, cameraMatrix, distCoeffs);
-            cv::Mat map1, map2;
-            cv::fisheye::initUndistortRectifyMap(cameraMatrixFisheye, distCoeffsFisheye, cv::Mat::eye(3, 3, CV_32F),
-                                                 cameraMatrixFisheye, image.size(), CV_16SC2, map1, map2);
+            //--- remove distortion from image
+            //TODO AFAIK we only need to init the two maps once...
+            if(first_image) {
+                cv::fisheye::initUndistortRectifyMap(cameraMatrixFisheye, distCoeffsFisheye, cv::Mat::eye(3, 3, CV_32F),
+                                                     cameraMatrixFisheye, image.size(), CV_16SC2, map1, map2);
+                first_image = false;
+            }
             remap(image, image, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
+
+            // @SOURCE https://stackoverflow.com/a/24341809
+            //--- Adaptive Histogram Normalisation
+            // RGB convert it to Lab
+            cv::Mat lab_image;
+            cv::cvtColor(image, lab_image, CV_BGR2Lab);
+
+            // Extract the L channel
+            std::vector<cv::Mat> lab_planes(3);
+            cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
+
+            // apply the CLAHE algorithm to the L channel
+            clahe->apply(lab_planes[0], dst);
+
+            // Merge the the color planes back into an Lab image
+            dst.copyTo(lab_planes[0]);
+            cv::merge(lab_planes, lab_image);
+
+            // convert back to RGB
+            cv::cvtColor(lab_image, image, CV_Lab2BGR);
             //---
 
 
@@ -247,9 +271,6 @@ int main(int argc, char **argv) {
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
-
-            raw_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", original_image).toImageMsg();
-            raw_image_pub.publish(raw_image_msg);
 
             ros::spinOnce();
             rate.sleep();
