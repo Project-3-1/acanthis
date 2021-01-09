@@ -158,8 +158,11 @@ int main(int argc, char **argv) {
         clahe->setClipLimit(4);
         cv::Mat dst;
 
+        Mat image, lab_image;
+
+        std::vector<cv::Mat> lab_planes(3);
+
         while (ros::ok() && inputVideo.grab()) {
-            Mat image;
             inputVideo.retrieve(image);
 
             //--- remove distortion from image
@@ -174,11 +177,9 @@ int main(int argc, char **argv) {
             // @SOURCE https://stackoverflow.com/a/24341809
             //--- Adaptive Histogram Normalisation
             // RGB convert it to Lab
-            cv::Mat lab_image;
             cv::cvtColor(image, lab_image, CV_BGR2Lab);
 
             // Extract the L channel
-            std::vector<cv::Mat> lab_planes(3);
             cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
 
             // apply the CLAHE algorithm to the L channel
@@ -213,7 +214,6 @@ int main(int argc, char **argv) {
                     for (int i = 0; i < markerIds.size(); i++) {
 
                         text_accepted = false;
-                        //Vec<double,3> rvec = rvecs[i];
                         Vec<double,3> tvec = tvecs[i];
 
                         float x = tvec[0];
