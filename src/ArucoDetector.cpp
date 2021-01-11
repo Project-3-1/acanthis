@@ -158,12 +158,11 @@ int main(int argc, char **argv) {
         clahe->setClipLimit(4);
         cv::Mat dst;
 
-        Mat image, lab_image;
-
-        std::vector<cv::Mat> lab_planes(3);
+        Mat image;
 
         while (ros::ok() && inputVideo.grab()) {
             inputVideo.retrieve(image);
+            cv::cvtColor(image, image, COLOR_BGR2GRAY);
 
             //--- remove distortion from image
             //TODO AFAIK we only need to init the two maps once...
@@ -174,25 +173,9 @@ int main(int argc, char **argv) {
             }
             remap(image, image, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
 
-            // @SOURCE https://stackoverflow.com/a/24341809
             //--- Adaptive Histogram Normalisation
-            // RGB convert it to Lab
-            cv::cvtColor(image, lab_image, CV_BGR2Lab);
-
-            // Extract the L channel
-            cv::split(lab_image, lab_planes);  // now we have the L image in lab_planes[0]
-
-            // apply the CLAHE algorithm to the L channel
-            clahe->apply(lab_planes[0], dst);
-
-            // Merge the the color planes back into an Lab image
-            dst.copyTo(lab_planes[0]);
-            cv::merge(lab_planes, lab_image);
-
-            // convert back to RGB
-            cv::cvtColor(lab_image, image, CV_Lab2BGR);
+            clahe->apply(image, image);
             //---
-
 
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
