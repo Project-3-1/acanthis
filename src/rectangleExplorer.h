@@ -45,8 +45,12 @@ public:
     void run();
 
     void explore();
+
     void track();
+    void track_velocity();
+
     void land();
+    void land_velocity();
 
     long get_aruco_last_seen();
 

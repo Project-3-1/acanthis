@@ -43,7 +43,7 @@ void RectangleExplorer::run() {
         switch (state) {
             case EXPLORATION: explore();
                 continue;
-            case TRACKING: track();
+            case TRACKING: track_velocity();
                 continue;
             case LANDING: land();
                 continue;
@@ -106,6 +106,43 @@ void RectangleExplorer::explore() {
 
 }
 
+void RectangleExplorer::track_velocity() {
+
+    cv::Vec3f velocity(aruco_pose->velocity.x, aruco_pose->velocity.y, aruco_pose->velocity.z);
+    double speed = sqrt(pow(velocity[0], 2) + pow(velocity[1], 2));
+    if(speed < 1E-4) {
+        controller.move_relative(aruco_pose->position.x, aruco_pose->position.y, 0, 0, true);
+    } else {
+        cv::Vec3f drone_speed = controller.get_max_speed();
+
+        double dt = 100;
+        double last_valid_dt = dt;
+        cv::Vec3f intersection = velocity * dt;
+        cv::Vec3f trajectory = (intersection - controller.get_position()) / dt;
+        ROS_INFO_STREAM("intersection a" << intersection);
+
+        while (true) {
+            dt -= 0.25;
+            intersection = velocity * dt;
+            trajectory = (intersection - controller.get_position()) / dt;
+
+            if(trajectory[0] < drone_speed[0] && trajectory[1] < drone_speed[1]) {
+                last_valid_dt = dt;
+            } else {
+                break;
+            }
+        }
+
+
+        intersection = velocity * last_valid_dt;
+        ROS_INFO_STREAM("intersection " << intersection);
+        ROS_INFO("dt: %.2f", dt);
+        controller.move_relative(intersection[0], intersection[1], 0, 0);
+    }
+    controller.land();
+
+}
+
 void RectangleExplorer::track() {
     const double transition_distance = 0.5; // [m]
 
@@ -134,6 +171,10 @@ void RectangleExplorer::track() {
     if(state == TRACKING) {
         state = LANDING;
     }
+}
+
+void RectangleExplorer::land_velocity() {
+
 }
 
 void RectangleExplorer::land() {
@@ -188,15 +229,15 @@ void RectangleExplorer::land() {
 
 void RectangleExplorer::demo() {
 
-    /*ros::Rate rate(60);
+    ros::Rate rate(60);
     while (ros::ok()) {
         cv::Vec4d platform_velocity = ekf.get_velocity();
         //ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0], platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         ros::spinOnce();
         rate.sleep();
-    }*/
+    }
 
-    controller.arm_drone();
+    /*controller.arm_drone();
     controller.takeoff(0.5);
 
     ros::Rate rate(1);
@@ -208,7 +249,7 @@ void RectangleExplorer::demo() {
         ros::spinOnce();
     }
 
-    controller.land();
+    controller.land();*/
 
 }
 

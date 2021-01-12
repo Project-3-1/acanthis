@@ -10,13 +10,9 @@
 
 #include "acanthis/ArucoPose.h"
 #include "sensor_msgs/Image.h"
-#include "geometry_msgs/PoseStamped.h"
 
 using namespace std;
 using namespace cv;
-
-static ros::Subscriber pose_sub;
-static geometry_msgs::PoseStamped::_pose_type pose;
 
 static int circle_buffer_index = 0;
 static int circle_buffer_length = 15;
@@ -24,10 +20,8 @@ static std::vector<cv::Vec3f> marker_positions(circle_buffer_length);
 static cv::Vec3f std_marker;
 static cv::Vec3f mean_marker;
 
-static std::vector<cv::Vec3f> drone_positions(circle_buffer_length);
 static std::vector<double> dt(circle_buffer_length);
 static cv::Vec3f marker_velocity;
-static cv::Vec3f drone_velocity;
 
 
 static bool read_calibration(const std::string& filename, Mat& camMatrix, Mat& distCoeffs)
@@ -81,17 +75,10 @@ static void calculate_avg_std(std::vector<cv::Vec3f>& data, cv::Vec3f& mean, cv:
 
 }
 
-static void _update_pos(const geometry_msgs::PoseStamped &p) {
-    pose = p.pose;
-}
-
 int main(int argc, char **argv) {
     ros::init(argc, argv, "aruco_detector");
     ros::NodeHandle node("~");
     ros::Rate rate(60);
-
-    pose_sub = pose_sub = node.subscribe("/crazyflie/pose", 1, _update_pos); // actually important to keep this reference around...
-
 
     // --- config
     string filename_calibration;
@@ -178,7 +165,6 @@ int main(int argc, char **argv) {
 
         while (ros::ok() && inputVideo.grab()) {
             inputVideo.retrieve(image);
-            cv::cvtColor(image, image, CV_BGR2GRAY);
 
             //--- remove distortion from image
             //TODO AFAIK we only need to init the two maps once...
@@ -196,10 +182,6 @@ int main(int argc, char **argv) {
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
             aruco::detectMarkers(image, dictionary, markerCorners, markerIds, params);
-
-            if(publish_debug_image) {
-                cv::cvtColor(image, image, CV_GRAY2BGR);
-            }
 
             double text_x, text_y, text_z;
             bool text_accepted = false;
@@ -229,9 +211,9 @@ int main(int argc, char **argv) {
                             // std check - 95% interval
                             const double mul = 2;
                             if(
-                                    (x <= (mean_marker[0] + mul * std_marker[0]) && x >= (mean_marker[0] - mul * std_marker[0])) &&
+                                    ((x <= (mean_marker[0] + mul * std_marker[0]) && x >= (mean_marker[0] - mul * std_marker[0])) &&
                                     (y <= (mean_marker[1] + mul * std_marker[1]) && y >= (mean_marker[1] - mul * std_marker[1])) &&
-                                    (z <= (mean_marker[2] + mul * std_marker[2]) && z >= (mean_marker[2] - mul * std_marker[2]))
+                                    (z <= (mean_marker[2] + mul * std_marker[2]) && z >= (mean_marker[2] - mul * std_marker[2])))
                                 )   {
 
                                 text_accepted = true;
@@ -249,21 +231,13 @@ int main(int argc, char **argv) {
                                 // --- velocity
                                 for(int j = 1; j < circle_buffer_length; j++) {
                                     marker_velocity = (marker_positions[j] - marker_positions[j - 1]) / (dt[j] - dt[j - 1]);
-                                    drone_velocity = (drone_positions[j] - drone_positions[j - 1]) / (dt[j] - dt[j - 1]);
                                 }
-                                ROS_INFO_STREAM("drone velocity " << drone_velocity << std::endl);
                                 marker_velocity /= circle_buffer_length;
-                                drone_velocity /= circle_buffer_length;
 
-                                marker_pose_msg.abs_velocity.x = marker_velocity[0];
-                                marker_pose_msg.abs_velocity.y = marker_velocity[1];
-                                marker_pose_msg.abs_velocity.z = marker_velocity[2];
+                                marker_pose_msg.velocity.x = marker_velocity[0];
+                                marker_pose_msg.velocity.y = marker_velocity[1];
+                                marker_pose_msg.velocity.z = marker_velocity[2];
 
-                                marker_velocity -= drone_velocity;
-
-                                marker_pose_msg.rel_velocity.x = marker_velocity[0];
-                                marker_pose_msg.rel_velocity.y = marker_velocity[1];
-                                marker_pose_msg.rel_velocity.z = marker_velocity[2];
 
                                 // --- publish
                                 pose_pub.publish(marker_pose_msg);
@@ -272,7 +246,6 @@ int main(int argc, char **argv) {
 
                         marker_positions[circle_buffer_index] = cv::Vec3f(x, y, z);
                         dt[circle_buffer_index] = ros::Time::now().toSec();
-                        drone_positions.emplace_back(pose.position.x, pose.position.y, pose.position.z);
                         circle_buffer_index = (circle_buffer_index + 1) % circle_buffer_length;
 
 

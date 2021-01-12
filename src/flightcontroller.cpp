@@ -40,6 +40,10 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     this->cmd_velocity_pub = node.advertise<crazyflie_driver::VelocityWorld>("/crazyflie/cmd_velocity_world", 1);
 }
 
+cv::Vec3f FlightController::get_max_speed() {
+    return cv::Vec3f(0.5, 0.5, 0.2);
+}
+
 bool FlightController::is_move_cancelled() {
     return cancelled;
 }
@@ -81,6 +85,7 @@ void FlightController::takeoff(float height) {
             rate.sleep();
         }
         break;
+
     }
 
     // move to the final height in normal flight mode
@@ -102,6 +107,7 @@ void FlightController::land() {
  * FlightController::land() when you need automated landing, or FlightController::hover() if you need the drone to
  * keep its current position.
  */
+
 void FlightController::stop() {
     std_msgs::Empty stop_msg;
     cmd_stop_pub.publish(stop_msg);
@@ -268,9 +274,9 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
-    const double max_x = .6; // 1; // in m/s
-    const double max_y = .6; // 1; // in m/s
-    const double max_z = 0.25; // in m/s
+    const double max_x = get_max_speed()[0]; // 1; // in m/s
+    const double max_y = get_max_speed()[1]; // 1; // in m/s
+    const double max_z = get_max_speed()[2]; // in m/s
     const double max_yaw = 45; // in deg/s
 
     // --- current values

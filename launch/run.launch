@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <launch>
     <group ns="acanthis">
-        <node if="true" name="FlyRectangleDemo" pkg="acanthis" type="FlyRectangleDemo" output="screen" />
+        <node if="true" name="acanthis" pkg="acanthis" type="Acanthis" output="screen" />
         <node if="true" name="aruco_detector" pkg="acanthis" type="aruco_detector" output="screen">
-            <param name="marker_size" value="0.174" /> <!-- 0.13 0.264 0.174 -->
+            <param name="marker_size" value="0.264" /> <!-- 0.13 0.264 0.174 -->
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
             <param name="calibration_fisheye" value="$(dirname)/../camera/calibration_fisheye.yaml" />
             <param name="camera" value="/dev/video2" />

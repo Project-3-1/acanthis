@@ -41,6 +41,8 @@ class FlightController {
 public:
     FlightController(ros::NodeHandle n, double freqency);
 
+    cv::Vec3f get_max_speed();
+
     bool is_move_cancelled();
     void cancel_movement();
 

@@ -214,8 +214,8 @@ add_library(${PROJECT_NAME}
 # catkin_add_nosetests(test)
 
 
-add_executable(FlyRectangleDemo src/FlyRectangleDemo.cpp)
+add_executable(Acanthis src/Acanthis.cpp)
 add_executable(aruco_detector src/ArucoDetector.cpp)
-target_link_libraries(FlyRectangleDemo ${catkin_LIBRARIES} acanthis)
+target_link_libraries(Acanthis ${catkin_LIBRARIES} acanthis)
 target_link_libraries(aruco_detector ${catkin_LIBRARIES} acanthis ${OpenCV_LIBS})
 #add_dependencies(talker beginner_tutorials_generate_messages_cpp)
