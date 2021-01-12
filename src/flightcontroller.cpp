@@ -10,6 +10,8 @@
 #include "crazyflie_driver/Position.h"
 #include "crazyflie_driver/GenericLogData.h"
 
+#include "acanthis/CmdVelocity.h"
+
 /**
  * Creates a new flight controller to control the Crazyflie.
  * @param node
@@ -34,6 +36,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     // ---
     this->cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
     this->cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
+    this->cmd_velocity_pub = node.advertise<acanthis::CmdVelocity>("/acanthis/cmd_vel", 1);
 }
 
 bool FlightController::is_move_cancelled() {
@@ -215,6 +218,15 @@ void FlightController::turn_left() {
 
 void FlightController::turn_right() {
     move_relative(0, 0, 0, -90);
+}
+
+void FlightController::cmd_velocity(double x, double y, double z) {
+    velocity.header.seq++;
+    velocity.header.stamp = ros::Time::now();
+    velocity.velocity.x = x;
+    velocity.velocity.y = y;
+    velocity.velocity.z = z;
+    cmd_velocity_pub.publish(velocity);
 }
 
 void FlightController::move_absolute(double x, double y, double z, int yaw) {

@@ -4,6 +4,7 @@
 #include "ros/ros.h"
 
 #include "crazyflie_driver/Position.h"
+#include "acanthis/CmdVelocity.h"
 #include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
 #include <opencv4/opencv2/opencv.hpp>
@@ -27,8 +28,9 @@ const double LANDING_HEIGHT = 0.1; // [m] - At which point the drone should turn
 class FlightController {
 
     crazyflie_driver::Position position;
+    acanthis::CmdVelocity velocity;
     geometry_msgs::PoseStamped::_pose_type pose;
-    ros::Publisher cmd_position_pub, cmd_stop_pub;
+    ros::Publisher cmd_position_pub, cmd_stop_pub, cmd_velocity_pub;
     ros::Subscriber crazyflie_pose_sub, crazyflie_ranger_sub;
 
     bool cancelled = false;
@@ -42,6 +44,8 @@ public:
     void cancel_movement();
 
     void arm_drone();
+
+    void cmd_velocity(double x, double y, double z);
 
     void move_absolute(double x, double y, double z, int yaw, bool error_correction);
     void move_relative(double x, double y, double z, int yaw, bool error_correction);
