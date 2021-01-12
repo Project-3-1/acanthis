@@ -251,6 +251,7 @@ int main(int argc, char **argv) {
                                     marker_velocity = (marker_positions[j] - marker_positions[j - 1]) / (dt[j] - dt[j - 1]);
                                     drone_velocity = (drone_positions[j] - drone_positions[j - 1]) / (dt[j] - dt[j - 1]);
                                 }
+                                ROS_INFO_STREAM("drone velocity " << drone_velocity << std::endl);
                                 marker_velocity /= circle_buffer_length;
                                 drone_velocity /= circle_buffer_length;
 

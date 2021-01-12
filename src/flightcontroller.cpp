@@ -9,6 +9,7 @@
 
 #include "crazyflie_driver/Position.h"
 #include "crazyflie_driver/GenericLogData.h"
+#include "crazyflie_driver/VelocityWorld.h"
 
 #include "acanthis/CmdVelocity.h"
 
@@ -36,7 +37,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
     // ---
     this->cmd_position_pub = node.advertise<crazyflie_driver::Position>("/crazyflie/cmd_position", 1);
     this->cmd_stop_pub = node.advertise<std_msgs::Empty>("/crazyflie/cmd_stop", 1);
-    this->cmd_velocity_pub = node.advertise<acanthis::CmdVelocity>("/acanthis/cmd_vel", 1);
+    this->cmd_velocity_pub = node.advertise<crazyflie_driver::VelocityWorld>("/crazyflie/cmd_velocity_world", 1);
 }
 
 bool FlightController::is_move_cancelled() {
@@ -221,11 +222,18 @@ void FlightController::turn_right() {
 }
 
 void FlightController::cmd_velocity(double x, double y, double z) {
-    velocity.header.seq++;
+    ROS_DEBUG("subs %d", cmd_velocity_pub.getNumSubscribers());
+    /*velocity.header.seq++;
     velocity.header.stamp = ros::Time::now();
     velocity.velocity.x = x;
     velocity.velocity.y = y;
-    velocity.velocity.z = z;
+    velocity.velocity.z = z;*/
+
+    velocity.header.seq++;
+    velocity.header.stamp = ros::Time::now();
+    velocity.vel.x = x;
+    velocity.vel.y = y;
+    velocity.vel.z = z;
     cmd_velocity_pub.publish(velocity);
     ros::spinOnce();
 }

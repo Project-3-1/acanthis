@@ -188,43 +188,28 @@ void RectangleExplorer::land() {
 
 void RectangleExplorer::demo() {
 
+    /*ros::Rate rate(60);
+    while (ros::ok()) {
+        cv::Vec4d platform_velocity = ekf.get_velocity();
+        //ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0], platform_velocity[2], platform_velocity[1], platform_velocity[3]);
+        ros::spinOnce();
+        rate.sleep();
+    }*/
+
     controller.arm_drone();
     controller.takeoff(0.5);
 
     ros::Rate rate(1);
     int i = 0;
-    while (ros::ok() && i < 5) {
-        controller.cmd_velocity(0.1, 0, 0);
+    while (ros::ok() && i < 8) {
+        controller.cmd_velocity(0.2, 0, 0.1);
         i++;
         rate.sleep();
+        ros::spinOnce();
     }
+
     controller.land();
 
-    /*ros::Rate rate(60);
-    while (ros::ok()) {
-        cv::Vec4d platform_velocity = ekf.get_velocity();
-        ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0],
-                 platform_velocity[2], platform_velocity[1], platform_velocity[3]);
-        ros::spinOnce();
-        rate.sleep();
-    }*/
-
-    /*controller.arm_drone();
-    controller.takeoff(0.5);
-
-    int i = 30;
-    while (ros::ok() && i> 0) {
-        controller.hover(1);
-        cv::Vec4d platform_velocity = ekf.get_velocity();
-        ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0],
-                 platform_velocity[2], platform_velocity[1], platform_velocity[3]);
-        ros::spinOnce();
-        i--;
-    }
-
-    if (ros::ok()) {
-        controller.land();
-    }*/
 }
 
 void RectangleExplorer::get_relative_left_right(Direction lastDir, Direction& d1, Direction& d2){

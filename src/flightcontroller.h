@@ -7,6 +7,7 @@
 #include "acanthis/CmdVelocity.h"
 #include "crazyflie_driver/GenericLogData.h"
 #include "geometry_msgs/PoseStamped.h"
+#include "crazyflie_driver/VelocityWorld.h"
 #include <opencv4/opencv2/opencv.hpp>
 
 const double DEG_TO_RAD = M_PI / 180.0;
@@ -28,7 +29,7 @@ const double LANDING_HEIGHT = 0.1; // [m] - At which point the drone should turn
 class FlightController {
 
     crazyflie_driver::Position position;
-    acanthis::CmdVelocity velocity;
+    crazyflie_driver::VelocityWorld velocity;
     geometry_msgs::PoseStamped::_pose_type pose;
     ros::Publisher cmd_position_pub, cmd_stop_pub, cmd_velocity_pub;
     ros::Subscriber crazyflie_pose_sub, crazyflie_ranger_sub;
