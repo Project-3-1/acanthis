@@ -55,6 +55,7 @@ find_package(catkin REQUIRED COMPONENTS
 add_message_files(
     FILES
     ArucoPose.msg
+    CmdVelocity.msg
 )
 
 ## Generate services in the 'srv' folder

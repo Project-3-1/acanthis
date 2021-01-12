@@ -247,8 +247,8 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     ros::Rate rate = _create_rate();
 
     // --- max movement speed for each axis in m/s
-    const double max_x = .5; // 1; // in m/s
-    const double max_y = .5; // 1; // in m/s
+    const double max_x = .6; // 1; // in m/s
+    const double max_y = .6; // 1; // in m/s
     const double max_z = 0.25; // in m/s
     const double max_yaw = 45; // in deg/s
 

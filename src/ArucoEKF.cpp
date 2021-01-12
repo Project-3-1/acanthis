@@ -25,7 +25,7 @@ void ArucoEKF::update(double x, double y) {
         Mat control = Mat::zeros(4, 1, CV_32F);
         control.at<float>(1) = 0.5 * pow(dT, 2);
         control.at<float>(3) = 0.5 * pow(dT, 2);
-        state = kf.predict();
+        state = kf.predict(control);
     }
 
     meas.at<float>(0) = x;

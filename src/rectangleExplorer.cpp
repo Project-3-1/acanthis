@@ -137,7 +137,7 @@ void RectangleExplorer::track() {
 }
 
 void RectangleExplorer::land() {
-    const double decent_speed = 0.07;
+    const double decent_speed = 0.1;
     const double drop_height = 0.3;
 
     ros::spinOnce();
@@ -152,7 +152,7 @@ void RectangleExplorer::land() {
             }
             controller.move_relative(marker_offset[0], marker_offset[1], z_offset, 0, true);
             last_id = this->marker_offset_id;
-        } else if(get_aruco_last_seen() < 2 && controller.get_z() <= hoverHeight) { // [s] && [m]
+        } else if(get_aruco_last_seen() <= 5 && controller.get_z() <= hoverHeight) { // [s] && [m]
             controller.move_relative(0, 0, 0, 0, true);
             //controller.move_relative(0, 0, 0.10, 0, true);
         } else {
@@ -188,8 +188,11 @@ void RectangleExplorer::land() {
 
 void RectangleExplorer::demo() {
 
-    ros::Rate rate(2);
+    ros::Rate rate(60);
     while (ros::ok()) {
+        cv::Vec4d platform_velocity = ekf.get_velocity();
+        ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0],
+                 platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         ros::spinOnce();
         rate.sleep();
     }
@@ -255,16 +258,16 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
     this->aruco_pose = pose;
     marker_offset = cv::Vec3f(pose->position.x,
                               pose->position.y,
-                              -pose->position.z);
+                              pose->position.z);
     this->marker_offset_id += 1;
     this->marker_last_seen = std::chrono::system_clock::now();
 
     // --- update ekf
-    /*if(this->ekf.get_last_seen() >= 10) {
+    if(this->ekf.get_last_seen() >= 10) {
         ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
         this->ekf.reset();
     }
-    this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
+    this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);
 }
 
 long RectangleExplorer::get_aruco_last_seen() {

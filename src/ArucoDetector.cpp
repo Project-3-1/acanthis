@@ -162,7 +162,7 @@ int main(int argc, char **argv) {
 
         while (ros::ok() && inputVideo.grab()) {
             inputVideo.retrieve(image);
-            cv::cvtColor(image, image, COLOR_BGR2GRAY);
+            cv::cvtColor(image, image, CV_BGR2GRAY);
 
             //--- remove distortion from image
             //TODO AFAIK we only need to init the two maps once...
@@ -174,12 +174,16 @@ int main(int argc, char **argv) {
             remap(image, image, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
 
             //--- Adaptive Histogram Normalisation
-            clahe->apply(image, image);
+            //clahe->apply(image, image);
             //---
 
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
             aruco::detectMarkers(image, dictionary, markerCorners, markerIds, params);
+
+            if(publish_debug_image) {
+                cv::cvtColor(image, image, CV_GRAY2BGR);
+            }
 
             double text_x, text_y, text_z;
             bool text_accepted = false;
@@ -251,6 +255,7 @@ int main(int argc, char **argv) {
                         FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
                 putText(image, format("%s", text_accepted ? "Accepted" : "Rejected"), Point(10, 130),
                         FONT_HERSHEY_COMPLEX, 0.5, CV_RGB(255 * !text_accepted,255 * text_accepted , 0), 1);
+
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);
             }
