@@ -25,6 +25,7 @@ from cflib.crazyflie.syncCrazyflie import SyncCrazyflie
 from cflib.positioning.motion_commander import MotionCommander
 from cflib.utils.multiranger import Multiranger
 
+
 URI = 'radio://0/80/2M'
 
 if len(sys.argv) > 1:
@@ -95,35 +96,36 @@ if __name__ == '__main__':
                 time.sleep(3)
                 while(keep_flying):
 
-                    """
+                   
                     ########################
                     # First starting technique: Doesn't check the surroundings when hovering after the take off. It goes straight
                     motion_commander.start_forward(VELOCITY)
                     ########################
-                    """
+                  
+                
 
                     ########################
                     # second starting technique: Check once if there is any obstacle around the drone. If yes, it will move to this obstacle with yawing.
-                    for range in ranges:
-                        if is_in_range(getattr(motion_commander, range)()):
-                            if is_close(getattr(motion_commander, range)()):
-                                motion_commander.stop()
-                            else:
-                                if range == "front":
-                                    motion_commander.start_forward(VELOCITY)
-                                elif range == "back":
-                                    motion_commander.turn_left(180)
-                                    motion_commander.start_back(VELOCITY)
-                                elif range == "right":
-                                    motion_commander.turn_right(90)
-                                    motion_commander.stop()
-                                    motion_commander.start_right(VELOCITY)
-                                elif range == "left":
-                                    motion_commander.turn_left(90)
-                                    motion_commander.stop()
-                                    motion_commander.start_left(VELOCITY)
-                        else:
-                            motion_commander.start_forward(VELOCITY)
+                    # for range in ranges:
+                    #     if is_in_range(getattr(motion_commander, range)()):
+                    #         if is_close(getattr(motion_commander, range)()):
+                    #             motion_commander.stop()
+                    #         else:
+                    #             if range == "front":
+                    #                 motion_commander.start_forward(VELOCITY)
+                    #             elif range == "back":
+                    #                 motion_commander.turn_left(180)
+                    #                 motion_commander.start_back(VELOCITY)
+                    #             elif range == "right":
+                    #                 motion_commander.turn_right(90)
+                    #                 motion_commander.stop()
+                    #                 motion_commander.start_right(VELOCITY)
+                    #             elif range == "left":
+                    #                 motion_commander.turn_left(90)
+                    #                 motion_commander.stop()
+                    #                 motion_commander.start_left(VELOCITY)
+                    #     else:
+                    #         motion_commander.start_forward(VELOCITY)
                     #####################
 
 
