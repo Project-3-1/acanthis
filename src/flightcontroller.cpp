@@ -227,6 +227,7 @@ void FlightController::cmd_velocity(double x, double y, double z) {
     velocity.velocity.y = y;
     velocity.velocity.z = z;
     cmd_velocity_pub.publish(velocity);
+    ros::spinOnce();
 }
 
 void FlightController::move_absolute(double x, double y, double z, int yaw) {

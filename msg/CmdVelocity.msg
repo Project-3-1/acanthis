@@ -1,3 +1,3 @@
 Header header
 int16 marker_id
-geometry_msgs/Point velocity
+geometry_msgs/Vector3 velocity

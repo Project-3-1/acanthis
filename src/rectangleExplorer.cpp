@@ -188,14 +188,26 @@ void RectangleExplorer::land() {
 
 void RectangleExplorer::demo() {
 
-    ros::Rate rate(60);
+    controller.arm_drone();
+    controller.takeoff(0.5);
+
+    ros::Rate rate(1);
+    int i = 0;
+    while (ros::ok() && i < 5) {
+        controller.cmd_velocity(0.1, 0, 0);
+        i++;
+        rate.sleep();
+    }
+    controller.land();
+
+    /*ros::Rate rate(60);
     while (ros::ok()) {
         cv::Vec4d platform_velocity = ekf.get_velocity();
         ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0],
                  platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         ros::spinOnce();
         rate.sleep();
-    }
+    }*/
 
     /*controller.arm_drone();
     controller.takeoff(0.5);
