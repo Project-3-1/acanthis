@@ -100,12 +100,17 @@ void Bug::avoid(){
     auto y = controller.get_y();
     Direction directions[] {LEFT,RIGHT,FORWARD,BACK};
     Direction closest = controller.get_closest_direction(directions);
-    ROS_INFO(" closest", closest);
+    ROS_INFO(" closest %d", closest);
     if(closest == 3 || closest == 4){
-        controller.move_relative(.0,.0,.0,90);
+        double d = controller.get_distance_measurement(closest);
+        controller.move_relative(.0,.0,.0,45);
+        while(controller.get_distance_measurement(closest)<d){
+            d = controller.get_distance_measurement(closest);
+            controller.move_relative(.0,.0,.0,2);
+        }
     }
     closest = controller.get_closest_direction(directions);
-    ROS_INFO(" #2 closest ", directions[closest]);
+    ROS_INFO(" #2 closest %d", closest);
     while( ros::ok() && state == EXPLORATION /*|| (x!=controller.get_x() && y!=controller.get_y()*/){
         if(state == TRACKING) break;
         // TODO target check
