@@ -24,7 +24,7 @@ enum Direction {
     DOWN    = 5,
 };
 
-const double LANDING_HEIGHT = 0.1; // [m] - At which point the drone should turn of its motors
+const double LANDING_HEIGHT = 0.3; // [m] - At which point the drone should turn of its motors
 
 class FlightController {
 

@@ -15,7 +15,7 @@ using namespace std;
 using namespace cv;
 
 static int circle_buffer_index = 0;
-static int circle_buffer_length = 15;
+static int circle_buffer_length = 10;
 static std::vector<cv::Vec3f> marker_positions(circle_buffer_length);
 static cv::Vec3f std_marker;
 static cv::Vec3f mean_marker;

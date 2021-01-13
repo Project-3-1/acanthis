@@ -43,7 +43,7 @@ void RectangleExplorer::run() {
         switch (state) {
             case EXPLORATION: explore();
                 continue;
-            case TRACKING: track_velocity();
+            case TRACKING: track();
                 continue;
             case LANDING: land();
                 continue;
@@ -108,37 +108,39 @@ void RectangleExplorer::explore() {
 
 void RectangleExplorer::track_velocity() {
 
-    cv::Vec3f velocity(aruco_pose->velocity.x, aruco_pose->velocity.y, aruco_pose->velocity.z);
-    double speed = sqrt(pow(velocity[0], 2) + pow(velocity[1], 2));
-    if(speed < 1E-4) {
-        controller.move_relative(aruco_pose->position.x, aruco_pose->position.y, 0, 0, true);
-    } else {
-        cv::Vec3f drone_speed = controller.get_max_speed();
+    cv::Vec3f platform_velocity(aruco_pose->velocity.x, aruco_pose->velocity.y, aruco_pose->velocity.z);
+    cv::Vec3f platform_position(aruco_pose->position.x, aruco_pose->position.y, aruco_pose->position.z);
+    cv::Vec3f drone_speed = controller.get_max_speed();
 
-        double dt = 100;
-        double last_valid_dt = dt;
-        cv::Vec3f intersection = velocity * dt;
-        cv::Vec3f trajectory = (intersection - controller.get_position()) / dt;
-        ROS_INFO_STREAM("intersection a" << intersection);
+    double dt = 100;
+    double last_valid_dt = dt;
+    cv::Vec3f intersection = platform_position + platform_velocity * dt;
+    cv::Vec3f trajectory = intersection / dt;
+    ROS_INFO_STREAM("intersection >> " << intersection);
+    ROS_INFO_STREAM("position >> " << controller.get_position());
+    ROS_INFO_STREAM("platform_velocity >> " << platform_velocity);
 
-        while (true) {
-            dt -= 0.25;
-            intersection = velocity * dt;
-            trajectory = (intersection - controller.get_position()) / dt;
-
-            if(trajectory[0] < drone_speed[0] && trajectory[1] < drone_speed[1]) {
-                last_valid_dt = dt;
-            } else {
-                break;
-            }
+    while (true) {
+        dt -= 0.25;
+        intersection = platform_position + platform_velocity * dt;
+        trajectory = intersection / dt;
+        ROS_INFO_STREAM("dt: " << intersection << " - " << trajectory);
+        if(trajectory[0] < drone_speed[0] && trajectory[1] < drone_speed[1]) {
+            last_valid_dt = dt;
+        } else {
+            break;
         }
-
-
-        intersection = velocity * last_valid_dt;
-        ROS_INFO_STREAM("intersection " << intersection);
-        ROS_INFO("dt: %.2f", dt);
-        controller.move_relative(intersection[0], intersection[1], 0, 0);
     }
+
+
+    intersection = platform_position + platform_velocity * (last_valid_dt);
+    trajectory = intersection / (last_valid_dt);
+    ROS_INFO_STREAM("intersection " << intersection);
+    ROS_INFO("dt: %.2f", last_valid_dt);
+    ros::Rate rate(1. / last_valid_dt);
+    controller.move_relative(intersection[0], intersection[1], 0, 0, true);
+    //rate.sleep();
+    //ros::spinOnce();
     controller.land();
 
 }
