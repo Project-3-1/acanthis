@@ -166,6 +166,7 @@ if __name__ == '__main__':
                             left_distance = multiranger.left
 
                             if is_close(multiranger.up):
+                                print("Something above is close so stopped")
                                 keep_flying = False
 
                             # if there is an obstacle closer to the drone on the right side than on the left side
@@ -229,6 +230,7 @@ if __name__ == '__main__':
                     while not target_is_found():
                         # safety method to stop the drone by holding a hand above it.
                         if is_close(multiranger.up):
+                            print("Something above is close so stopped")
                             keep_flying = False
                         # TODO add another command to set keepflying to false
 
@@ -275,6 +277,8 @@ if __name__ == '__main__':
 
                     # security measure
                     if not keep_flying:
+                        print5
+                        print("security")
                         motion_commander.stop()
                         motion_commander.land()
                         # TODO not sure about the landing technique and velocity
