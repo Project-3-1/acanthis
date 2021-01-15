@@ -124,45 +124,50 @@ if __name__ == '__main__':
                     #         motion_commander.start_forward(VELOCITY)
                     #####################
 
-                    """"
-                    ########################
-                    # third starting technique: Check all the time if there is any obstacle around the drone. If yes, it will move to this obstacle without yawing.
-                    # TODO implement a for loop to do this many times
-                    for range in ranges:
-                        if is_in_range(range):
-                            if is_close(range):
-                                motion_commander.stop()
-                            else:
-                                if range == "front":
-                                    motion_commander.start_forward(VELOCITY)
-                                elif range == "back":
-                                    motion_commander.start_back(VELOCITY)
-                                elif range == "right":
-                                    motion_commander.start_right(VELOCITY)
-                                elif range == "left":
-                                    motion_commander.start_left(VELOCITY)
-                        else:
-                            motion_commander.start_forward(VELOCITY)
-                    #####################
-                    """
+                    # third starting technique: Check all the time if there is any obstacle around the drone.
+                    # If yes, it will move to this obstacle without yawing.
+                    # for range in ranges:
+                    #     if is_in_range(range):
+                    #         if is_close(range):
+                    #             motion_commander.stop()
+                    #         else:
+                    #             if range == "front":
+                    #                 motion_commander.start_forward(VELOCITY)
+                    #             elif range == "back":
+                    #                 motion_commander.start_back(VELOCITY)
+                    #             elif range == "right":
+                    #                 motion_commander.start_right(VELOCITY)
+                    #             elif range == "left":
+                    #                 motion_commander.start_left(VELOCITY)
+                    #     else:
+                    #         motion_commander.start_forward(VELOCITY)
+                    #
 
                     # To find a wall so it goes straight till it finds one
                     # This is one option to compute the required angle to yaw in order to fly parallel to the wall.
                     # I (Selim) have another approach in mind to compute it in case this one doesn't work.
 
-                    # TODO if we do the 2nd or the 3rd starting approach, then we need to check all ranges and not only the front one.
+                    # TODO if we do the 2nd or the 3rd starting approach, then we need to check all ranges and
+                    #  not only the front one.
                     # However, if we perform the 1st starting approach, then only the front range is required to check.
                     while not first_wall_is_found:
                         # if the drone is close to a wall in front, then it stops etc. And it will set
                         # "first_wall_is_found" to true to exit this while loop
                         # if there is nothing close in front, then it just doesn't do any action, it will continue
                         # the start_forward move that has been called after the take off.
+                        if is_close(multiranger.up):
+                                keep_flying = False
+                                
                         if is_close(multiranger.front):
                             motion_commander.stop()
 
                             front_distance = multiranger.front
                             right_distance = multiranger.right
                             left_distance = multiranger.left
+
+                            if is_close(multiranger.up):
+                                keep_flying = False
+
                             # if there is an obstacle closer to the drone on the right side than on the left side
                             if multiranger.right < multiranger.left and right_distance < 1:
                                 # computing the required angle to yaw in order to fly parallel to the wall.
@@ -189,6 +194,7 @@ if __name__ == '__main__':
                                 # and the wall
                                 if multiranger.left == (left_distance * math.sin(angle_to_yaw_radians) + 0.1) or multiranger.left == (left_distance * math.sin(angle_to_yaw) - 0.1):
                                     is_parallel_to_first_wall = True
+                                    print("Is parallel to the wall: ", is_parallel_to_first_wall)
 
                             # In case the left and right distances are equal or if the distance is smaller than 1m,
                             # then it will turn 90 degrees in a random direction (left or right)
@@ -201,6 +207,7 @@ if __name__ == '__main__':
                                 first_wall_is_found = True
                             # TODO add the corner case
 
+                    print("Reached the first wall")
                     # The next step is to fly parallel to the wall. The quadcopter has now been rotated
                     # and the front is pointing parallel to the encountered wall.
                     if not is_close(multiranger.front):
@@ -210,7 +217,7 @@ if __name__ == '__main__':
                     # other way around and a bit further away.
 
                     # start the Left Left - Right Right pattern to explore the room.
-                    # The drone turns 90 degrees every time it is close to as wall and then flies for a certain 
+                    # The drone turns 90 degrees every time it is close to as wall and then flies for a certain
                     # pre determined distance before turning again (same direction as before)
 
                     # Initialize switch direction
