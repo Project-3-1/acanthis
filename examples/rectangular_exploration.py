@@ -155,8 +155,8 @@ if __name__ == '__main__':
                         # "first_wall_is_found" to true to exit this while loop
                         # if there is nothing close in front, then it just doesn't do any action, it will continue
                         # the start_forward move that has been called after the take off.
-                        if is_close(multiranger.up):
-                                keep_flying = False
+                        # if is_close(multiranger.up):
+                        #         keep_flying = False
                                 
                         if is_close(multiranger.front):
                             motion_commander.stop()
@@ -165,9 +165,9 @@ if __name__ == '__main__':
                             right_distance = multiranger.right
                             left_distance = multiranger.left
 
-                            if is_close(multiranger.up):
-                                print("Something above is close so stopped")
-                                keep_flying = False
+                          #   if is_close(multiranger.up):
+                          #       print("Something above is close so stopped")
+                           #      keep_flying = False
 
                             # if there is an obstacle closer to the drone on the right side than on the left side
                             if multiranger.right < multiranger.left and right_distance < 1:
@@ -229,9 +229,9 @@ if __name__ == '__main__':
 
                     while not target_is_found():
                         # safety method to stop the drone by holding a hand above it.
-                        if is_close(multiranger.up):
-                            print("Something above is close so stopped")
-                            keep_flying = False
+                        # if is_close(multiranger.up):
+                        #     print("Something above is close so stopped")
+                        #     keep_flying = False
                         # TODO add another command to set keepflying to false
 
                         # correct the height if necessary
