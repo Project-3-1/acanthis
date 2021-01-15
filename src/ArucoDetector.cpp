@@ -11,11 +11,15 @@
 #include "acanthis/ArucoPose.h"
 #include "sensor_msgs/Image.h"
 
+#include "ArucoEKF.h"
+
 using namespace std;
 using namespace cv;
 
+static ArucoEKF ekf;
+
 static int circle_buffer_index = 0;
-static int circle_buffer_length = 10;
+static int circle_buffer_length = 30;
 static std::vector<cv::Vec3f> marker_positions(circle_buffer_length);
 static cv::Vec3f std_marker;
 static cv::Vec3f mean_marker;
@@ -157,8 +161,6 @@ int main(int argc, char **argv) {
         cv::Mat map1, map2;
 
         //---
-        cv::Ptr<cv::CLAHE> clahe = cv::createCLAHE();
-        clahe->setClipLimit(4);
         cv::Mat dst;
 
         Mat image;
@@ -167,7 +169,6 @@ int main(int argc, char **argv) {
             inputVideo.retrieve(image);
 
             //--- remove distortion from image
-            //TODO AFAIK we only need to init the two maps once...
             if(first_image) {
                 cv::fisheye::initUndistortRectifyMap(cameraMatrixFisheye, distCoeffsFisheye, cv::Mat::eye(3, 3, CV_32F),
                                                      cameraMatrixFisheye, image.size(), CV_16SC2, map1, map2);
@@ -175,13 +176,10 @@ int main(int argc, char **argv) {
             }
             remap(image, image, map1, map2, INTER_LINEAR, BORDER_CONSTANT);
 
-            //--- Adaptive Histogram Normalisation
-            //clahe->apply(image, image);
-            //---
-
             std::vector<int> markerIds;
             std::vector<std::vector<Point2f> > markerCorners;
             aruco::detectMarkers(image, dictionary, markerCorners, markerIds, params);
+
 
             double text_x, text_y, text_z;
             bool text_accepted = false;
@@ -202,7 +200,7 @@ int main(int argc, char **argv) {
                         Vec<double,3> tvec = tvecs[i];
 
                         float x = tvec[0];
-                        float y = -tvec[1];
+                        float y = -tvec[1] + 0.025;
                         float z = -tvec[2];
 
                         if(marker_positions.size() == circle_buffer_length) {
@@ -228,9 +226,17 @@ int main(int argc, char **argv) {
                                 marker_pose_msg.position.y = y;
                                 marker_pose_msg.position.z = z;
 
+                                // --- update ekf
+                                /*if(this->ekf.get_last_seen() >= 10) {
+                                    ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
+                                    this->ekf.reset();
+                                }
+                                this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
+
                                 // --- velocity
+                                marker_velocity = cv::Vec3f(0, 0, 0);
                                 for(int j = 1; j < circle_buffer_length; j++) {
-                                    marker_velocity = (marker_positions[j] - marker_positions[j - 1]) / (dt[j] - dt[j - 1]);
+                                    marker_velocity += (marker_positions[j] - marker_positions[j - 1]) / (dt[j] - dt[j - 1]);
                                 }
                                 marker_velocity /= circle_buffer_length;
 

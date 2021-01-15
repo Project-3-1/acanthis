@@ -32,8 +32,6 @@ class RectangleExplorer {
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
 
-    ArucoEKF ekf;
-
     float hoverHeight;
     double minDist;
     double waySize;

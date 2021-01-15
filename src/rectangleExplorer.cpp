@@ -2,7 +2,6 @@
 
 #include "flightcontroller.h"
 #include "ros/node_handle.h"
-#include "math.h"
 
 #include "acanthis/ArucoPose.h"
 
@@ -108,7 +107,8 @@ void RectangleExplorer::explore() {
 
 void RectangleExplorer::track_velocity() {
 
-    cv::Vec3f platform_velocity(aruco_pose->velocity.x, aruco_pose->velocity.y, aruco_pose->velocity.z);
+    controller.move_absolute(controller.get_x(), controller.get_y(), controller.get_z(), 0);
+    /*cv::Vec3f platform_velocity(aruco_pose->velocity.x, aruco_pose->velocity.y, aruco_pose->velocity.z);
     cv::Vec3f platform_position(aruco_pose->position.x, aruco_pose->position.y, aruco_pose->position.z);
     cv::Vec3f drone_speed = controller.get_max_speed();
 
@@ -130,23 +130,52 @@ void RectangleExplorer::track_velocity() {
         } else {
             break;
         }
+    }*/
+
+
+
+    const double transition_distance = 0.5; // [m]
+    double error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
+
+    cv::Vec3f platform_position;
+    const cv::Vec3f drone_speed = controller.get_max_speed();
+    ros::Rate rate(10);
+    double now;
+
+    while (error >= 0.05) {
+
+        platform_position = cv::Vec3f(aruco_pose->position.x, aruco_pose->position.y, 0);
+        double dt_x = platform_position[0] / drone_speed[0];
+        double dt_y = platform_position[1] / drone_speed[1];
+
+        double max_dt = std::max(dt_x, dt_y);
+        double v_x = platform_position[0] / max_dt;
+        double v_y = platform_position[1] / max_dt;
+
+        now = ros::Time::now().toSec();
+        ROS_INFO("max_dt: %.2f", max_dt);
+        while (ros::Time::now().toSec() - now <= max_dt) {
+            if(controller.get_z() < hoverHeight) {
+                controller.cmd_velocity(v_x, v_y, 0);
+            } else {
+                controller.cmd_velocity(v_x, v_y, 0);
+            }
+            ros::spinOnce();
+            rate.sleep();
+        }
+
+        ros::spinOnce();
+
+        error = sqrt(pow(marker_offset[0], 2) + pow(marker_offset[1], 2));
     }
-
-
-    intersection = platform_position + platform_velocity * (last_valid_dt);
-    trajectory = intersection / (last_valid_dt);
-    ROS_INFO_STREAM("intersection " << intersection);
-    ROS_INFO("dt: %.2f", last_valid_dt);
-    ros::Rate rate(1. / last_valid_dt);
-    controller.move_relative(intersection[0], intersection[1], 0, 0, true);
-    //rate.sleep();
-    //ros::spinOnce();
+    controller.cmd_velocity(0, 0, 0);
     controller.land();
+    state = TRACKING;
 
 }
 
 void RectangleExplorer::track() {
-    const double transition_distance = 0.5; // [m]
+    const double transition_distance = 1; // [m]
 
     int last_id = -1;
     // euclidian distance to marker
@@ -180,7 +209,7 @@ void RectangleExplorer::land_velocity() {
 }
 
 void RectangleExplorer::land() {
-    const double decent_speed = 0.1;
+    const double decent_speed = 0.15;
     const double drop_height = 0.3;
 
     ros::spinOnce();
@@ -233,7 +262,7 @@ void RectangleExplorer::demo() {
 
     ros::Rate rate(60);
     while (ros::ok()) {
-        cv::Vec4d platform_velocity = ekf.get_velocity();
+        //cv::Vec4d platform_velocity = ekf.get_velocity();
         //ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0], platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         ros::spinOnce();
         rate.sleep();
@@ -245,7 +274,7 @@ void RectangleExplorer::demo() {
     ros::Rate rate(1);
     int i = 0;
     while (ros::ok() && i < 8) {
-        controller.cmd_velocity(0.2, 0, 0.1);
+        controller.hover(0.5);
         i++;
         rate.sleep();
         ros::spinOnce();
@@ -301,13 +330,6 @@ void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& 
                               pose->position.z);
     this->marker_offset_id += 1;
     this->marker_last_seen = std::chrono::system_clock::now();
-
-    // --- update ekf
-    if(this->ekf.get_last_seen() >= 10) {
-        ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
-        this->ekf.reset();
-    }
-    this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);
 }
 
 long RectangleExplorer::get_aruco_last_seen() {

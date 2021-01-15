@@ -41,7 +41,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
 }
 
 cv::Vec3f FlightController::get_max_speed() {
-    return cv::Vec3f(0.6, 0.6, 0.2);
+    return cv::Vec3f(1.3, 1.3, 0.2);
 }
 
 bool FlightController::is_move_cancelled() {
@@ -291,6 +291,8 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
     double dz = z - cz;
     double dyaw = (yaw-cyaw);// + 3 * M_PI) % 2 * M_PI - M_PI_2;
 
+    //ROS_INFO("move_absolute -> dx: %.2f dy: %.2f dz: %.2f dyaw: %.2f", dx, dy, dz, dyaw);
+
     // --- we adjust the z axis first because it is slow
     if (abs(dz) > 0) {
         double z_steps = abs(dz / max_z);
@@ -355,7 +357,7 @@ void FlightController::move_absolute(double x, double y, double z, int yaw, bool
         double yaw_error = std::fmod(std::abs(_calculate_yaw(pose.orientation) - yaw), 360);
 
         // error < 0.05[cm] && yaw_error <= 10[deg]
-        if((error < 0.05 && yaw_error <= 10) || is_move_cancelled()) {
+        if((error < 0.1 && yaw_error <= 10) || is_move_cancelled()) {
             break;
         }
         //ROS_WARN("Error still too big -> dis_err: %.2f, yaw_err: %.2fdeg", error, yaw_error);
