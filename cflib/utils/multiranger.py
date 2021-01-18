@@ -39,13 +39,13 @@ class Multiranger:
         else:
             self._cf = crazyflie
         self._log_config = self._create_log_config(rate_ms)
-
-        self._up_distance = None
-        self._front_distance = None
-        self._back_distance = None
-        self._left_distance = None
-        self._right_distance = None
-        self._down_distance = None
+    
+        self._up_distance = type(None)
+        self._front_distance = type(None)
+        self._back_distance = type(None)
+        self._left_distance = type(None)
+        self._right_distance = type(None)
+        self._down_distance = type(None)
 
     def _create_log_config(self, rate_ms):
         log_config = LogConfig('multiranger', rate_ms)
@@ -65,7 +65,7 @@ class Multiranger:
         self._log_config.start()
 
     def _convert_log_to_distance(self, data):
-            return data / 1000.0
+        return data / 1000.0
 
     def _data_received(self, timestamp, data, logconf):
         self._up_distance = self._convert_log_to_distance(data[self.UP])
