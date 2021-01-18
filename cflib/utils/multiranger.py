@@ -65,9 +65,6 @@ class Multiranger:
         self._log_config.start()
 
     def _convert_log_to_distance(self, data):
-        if data >= 8000:
-            return None
-        else:
             return data / 1000.0
 
     def _data_received(self, timestamp, data, logconf):
