@@ -76,6 +76,9 @@ if __name__ == '__main__':
 
                 while keep_flying and not target_found:
 
+                    if is_close(multiranger.up):
+                        keep_flying = False
+
                     ##### handle state transitions #######
                     if state == "TAKE_OFF":
                         # if higher than 0.5, fly forward
@@ -84,7 +87,7 @@ if __name__ == '__main__':
 
                     elif state == "FORWARD":
                         # if close enough to the front wall, turn to find it and be in front of it.
-                        if multiranger.front < ref_distance_from_wall:
+                        if is_close(multiranger.front):
                             state = transition("TURN_TO_FIND_WALL")
 
                     elif state == "HOVER":
@@ -165,6 +168,8 @@ if __name__ == '__main__':
 
                     print(state)
 
+
+
                     ##### handle state ations ########
                     if state == "TAKE_OFF":
                         twist = motion_commander.take_off()
@@ -229,3 +234,5 @@ if __name__ == '__main__':
                     elif state == "ROTATE_IN_CORNER":
                         twist = motion_commander.stop()
                         twist = motion_commander.turn_left(90)
+
+                motion_commander.land()
