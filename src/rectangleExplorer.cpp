@@ -262,7 +262,7 @@ void RectangleExplorer::demo() {
 
     ros::Rate rate(60);
     while (ros::ok()) {
-        //cv::Vec4d platform_velocity = ekf.get_velocity();
+        cv::Vec4d platform_velocity = ekf.get_velocity();
         //ROS_INFO("EKF -> v_x=%.2f (%.2f) [m/s], v_y=%.2f (%.2f) [m/s]", platform_velocity[0], platform_velocity[2], platform_velocity[1], platform_velocity[3]);
         ros::spinOnce();
         rate.sleep();
@@ -273,7 +273,7 @@ void RectangleExplorer::demo() {
 
     ros::Rate rate(1);
     int i = 0;
-    while (ros::ok() && i < 8) {
+    while (ros::ok() && i < 30) {
         controller.hover(0.5);
         i++;
         rate.sleep();
@@ -319,6 +319,15 @@ void RectangleExplorer::move_in_dir(Direction dir) {
 }
 
 void RectangleExplorer::_update_aruco_pose(const acanthis::ArucoPose::ConstPtr& pose) {
+
+
+    // --- update ekf
+    if(this->ekf.get_last_seen() >= 10) {
+        ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
+        this->ekf.reset();
+    }
+    this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);
+
     if(this->state == EXPLORATION) {
         this->state = TRACKING;
         this->controller.cancel_movement();

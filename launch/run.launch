@@ -6,7 +6,7 @@
             <param name="marker_size" value="0.264" /> <!-- 0.13 0.264 0.174 -->
             <param name="calibration" value="$(dirname)/../camera/calibration.yaml" />
             <param name="calibration_fisheye" value="$(dirname)/../camera/calibration_fisheye.yaml" />
-            <param name="camera" value="/dev/video2" />
+            <param name="camera" value="/dev/video3" />
             <param name="publish_debug_image" value="true" />
             <param name="dictionary" value="4" />
         </node>

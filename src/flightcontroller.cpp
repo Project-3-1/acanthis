@@ -41,7 +41,7 @@ FlightController::FlightController(ros::NodeHandle node, double frequency) {
 }
 
 cv::Vec3f FlightController::get_max_speed() {
-    return cv::Vec3f(1.3, 1.3, 0.2);
+    return cv::Vec3f(0.6, 0.6, 0.2);
 }
 
 bool FlightController::is_move_cancelled() {

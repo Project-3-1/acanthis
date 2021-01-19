@@ -11,12 +11,8 @@
 #include "acanthis/ArucoPose.h"
 #include "sensor_msgs/Image.h"
 
-#include "ArucoEKF.h"
-
 using namespace std;
 using namespace cv;
-
-static ArucoEKF ekf;
 
 static int circle_buffer_index = 0;
 static int circle_buffer_length = 30;
@@ -182,7 +178,7 @@ int main(int argc, char **argv) {
 
 
             double text_x, text_y, text_z;
-            bool text_accepted = false;
+            int text_accepted = 0; // 0 -> nothing detected | 1 -> rejected | 2 -> accepted
             if (!markerIds.empty()) {
                 std::vector<Vec3d> rvecs, tvecs;
                 aruco::estimatePoseSingleMarkers(markerCorners, marker_size, cameraMatrixAfterFisheye, distCoeffsAfterFisheye, rvecs, tvecs);
@@ -196,7 +192,7 @@ int main(int argc, char **argv) {
 
                     for (int i = 0; i < markerIds.size(); i++) {
 
-                        text_accepted = false;
+                        text_accepted = 0;
                         Vec<double,3> tvec = tvecs[i];
 
                         float x = tvec[0];
@@ -214,7 +210,7 @@ int main(int argc, char **argv) {
                                     (z <= (mean_marker[2] + mul * std_marker[2]) && z >= (mean_marker[2] - mul * std_marker[2])))
                                 )   {
 
-                                text_accepted = true;
+                                text_accepted = 2;
 
                                 // --- position
                                 marker_pose_msg.header.seq++;
@@ -225,13 +221,6 @@ int main(int argc, char **argv) {
                                 marker_pose_msg.position.x = x;
                                 marker_pose_msg.position.y = y;
                                 marker_pose_msg.position.z = z;
-
-                                // --- update ekf
-                                /*if(this->ekf.get_last_seen() >= 10) {
-                                    ROS_WARN("Reset EKF because the marker was out of sight for >= 10 [s]");
-                                    this->ekf.reset();
-                                }
-                                this->ekf.update(controller.get_x() + pose->position.x, controller.get_y() + pose->position.y);*/
 
                                 // --- velocity
                                 marker_velocity = cv::Vec3f(0, 0, 0);
@@ -247,6 +236,8 @@ int main(int argc, char **argv) {
 
                                 // --- publish
                                 pose_pub.publish(marker_pose_msg);
+                            } else {
+                                text_accepted = 1;
                             }
                         }
 
@@ -272,8 +263,18 @@ int main(int argc, char **argv) {
                         FONT_HERSHEY_COMPLEX, 1, CV_RGB(0, 255, 0), 3);
                 putText(image, format("z: %.2f", text_z), Point(10, 110),
                         FONT_HERSHEY_COMPLEX, 1, CV_RGB(0,0, 255), 3);
-                putText(image, format("%s", text_accepted ? "Accepted" : "Rejected"), Point(10, 130),
-                        FONT_HERSHEY_COMPLEX, 0.5, CV_RGB(255 * !text_accepted,255 * text_accepted , 0), 1);
+
+                if(text_accepted == 0) {
+                    putText(image, "None Detected", Point(10, 130),FONT_HERSHEY_COMPLEX,
+                            0.5, CV_RGB(255,255, 0), 1);
+
+                } else if(text_accepted == 1) {
+                    putText(image, "Rejected", Point(10, 130),FONT_HERSHEY_COMPLEX,
+                            0.5, CV_RGB(255,0 , 0), 1);
+                } else if(text_accepted == 2) {
+                    putText(image, "Accepted", Point(10, 130),FONT_HERSHEY_COMPLEX,
+                            0.5, CV_RGB(0,255 , 0), 1);
+                }
 
                 debug_image_msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
                 debug_image_pub.publish(debug_image_msg);

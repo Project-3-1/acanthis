@@ -32,12 +32,15 @@ class RectangleExplorer {
 
     acanthis::ArucoPose::ConstPtr aruco_pose;
 
+
     float hoverHeight;
     double minDist;
     double waySize;
     double distMoved;
     bool inFirstLoop;
 public:
+    ArucoEKF ekf;
+
     RectangleExplorer(ros::NodeHandle& node, double frequency);
 
     void run();
