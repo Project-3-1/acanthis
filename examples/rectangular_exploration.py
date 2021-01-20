@@ -66,8 +66,6 @@ def turn_at_wall(direction):
     if direction == 1:
         motion_commander.turn_left(90)
 
-
-
 if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
     cflib.crtp.init_drivers(enable_debug_driver=False)
@@ -95,61 +93,10 @@ if __name__ == '__main__':
                 time.sleep(1)
                 while(keep_flying):
 
-                    ########################
-                    # First starting technique: Doesn't check the surroundings when hovering after the take off. It goes straight
+                    # First starting technique: Doesn't check the surroundings when hovering after the take off.
+                    # It goes straight
                     motion_commander.start_forward(VELOCITY)
-                    ########################
 
-                    ########################
-                    # second starting technique: Check once if there is any obstacle around the drone. If yes, it will move to this obstacle with yawing.
-                    # for range in ranges:
-                    #     if is_in_range(getattr(motion_commander, range)()):
-                    #         if is_close(getattr(motion_commander, range)()):
-                    #             motion_commander.stop()
-                    #         else:
-                    #             if range == "front":
-                    #                 motion_commander.start_forward(VELOCITY)
-                    #             elif range == "back":
-                    #                 motion_commander.turn_left(180)
-                    #                 motion_commander.start_back(VELOCITY)
-                    #             elif range == "right":
-                    #                 motion_commander.turn_right(90)
-                    #                 motion_commander.stop()
-                    #                 motion_commander.start_right(VELOCITY)
-                    #             elif range == "left":
-                    #                 motion_commander.turn_left(90)
-                    #                 motion_commander.stop()
-                    #                 motion_commander.start_left(VELOCITY)
-                    #     else:
-                    #         motion_commander.start_forward(VELOCITY)
-                    #####################
-
-                    # third starting technique: Check all the time if there is any obstacle around the drone.
-                    # If yes, it will move to this obstacle without yawing.
-                    # for range in ranges:
-                    #     if is_in_range(range):
-                    #         if is_close(range):
-                    #             motion_commander.stop()
-                    #         else:
-                    #             if range == "front":
-                    #                 motion_commander.start_forward(VELOCITY)
-                    #             elif range == "back":
-                    #                 motion_commander.start_back(VELOCITY)
-                    #             elif range == "right":
-                    #                 motion_commander.start_right(VELOCITY)
-                    #             elif range == "left":
-                    #                 motion_commander.start_left(VELOCITY)
-                    #     else:
-                    #         motion_commander.start_forward(VELOCITY)
-                    #
-
-                    # To find a wall so it goes straight till it finds one
-                    # This is one option to compute the required angle to yaw in order to fly parallel to the wall.
-                    # I (Selim) have another approach in mind to compute it in case this one doesn't work.
-
-                    # TODO if we do the 2nd or the 3rd starting approach, then we need to check all ranges and
-                    #  not only the front one.
-                    # However, if we perform the 1st starting approach, then only the front range is required to check.
                     while not first_wall_is_found:
                         # if the drone is close to a wall in front, then it stops etc. And it will set
                         # "first_wall_is_found" to true to exit this while loop
@@ -157,17 +104,13 @@ if __name__ == '__main__':
                         # the start_forward move that has been called after the take off.
                         # if is_close(multiranger.up):
                         #         keep_flying = False
-                                
+
                         if is_close(multiranger.front):
                             motion_commander.stop()
 
                             front_distance = multiranger.front
                             right_distance = multiranger.right
                             left_distance = multiranger.left
-
-                          #   if is_close(multiranger.up):
-                          #       print("Something above is close so stopped")
-                           #      keep_flying = False
 
                             # if there is an obstacle closer to the drone on the right side than on the left side
                             if multiranger.right < multiranger.left and right_distance < 1:
@@ -255,7 +198,7 @@ if __name__ == '__main__':
                                 else:
                                     motion_commander.turn_left(180)
 
-                            elif switch == "next_is_right" and multiranger.right > multiranger.left and not is_close(multiranger.right):
+                            elif not is_close(multiranger.right):
                                 motion_commander.turn_right(90)
                                 time.sleep(0.1)
                                 if not is_close(multiranger.front):
@@ -277,7 +220,6 @@ if __name__ == '__main__':
 
                     # security measure
                     if not keep_flying:
-                        print5
                         print("security")
                         motion_commander.stop()
                         motion_commander.land()
