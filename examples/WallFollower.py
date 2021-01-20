@@ -15,8 +15,10 @@ if len(sys.argv) > 1:
 # Only output errors from the logging framework
 logging.basicConfig(level=logging.ERROR)
 
+
 def wraptopi(number):
     return (number + np.pi) % (2 * np.pi) - np.pi
+
 
 # to check if the drone is close to an obstacle
 def logicIsCloseTo(self, real_value=0.0, checked_value=0.0, margin=0.05):
@@ -25,6 +27,7 @@ def logicIsCloseTo(self, real_value=0.0, checked_value=0.0, margin=0.05):
     else:
         return False
 
+
 # Determine whether the drone is closed to an obstacle or not. Let's say the threshold is 0.3
 def is_close(range):
     MIN_DISTANCE = 0.5  # meters
@@ -32,6 +35,7 @@ def is_close(range):
         return False
     else:
         return range < MIN_DISTANCE
+
 
 # Transition state and restart the timer
 def transition(newState):
@@ -80,7 +84,6 @@ if __name__ == '__main__':
                         keep_flying = False
 
                     ##### handle state transitions #######
-    
 
                     elif state == "FORWARD":
                         # if close enough to the front wall, turn to find it and be in front of it.
@@ -95,7 +98,8 @@ if __name__ == '__main__':
                         side_range = multiranger.right
                         front_range = multiranger.front
                         # if in front of the wall
-                        if (side_range < ref_distance_from_wall / math.cos(0.78) + 0.2 and front_range < ref_distance_from_wall / math.cos(0.78) + 0.2):
+                        if (side_range < ref_distance_from_wall / math.cos(
+                                0.78) + 0.2 and front_range < ref_distance_from_wall / math.cos(0.78) + 0.2):
                             # previous_heading = current_heading
                             angle = direction * (1.57 - math.atan(front_range / side_range))
                             # time to rotate in order to be parallel to the wall
@@ -107,11 +111,11 @@ if __name__ == '__main__':
                         # rotate around the wall
                         # careful to the 2.0 value, we might want to change this value depending on the
                         # size of th walls (room)
-                        if (side_range < 1.0 and front_range > 2.0):
-                            around_corner_first_turn = True
-                            around_corner_go_back = False
-                            # previous_heading = current_heading
-                            state = transition("ROTATE_AROUND_WALL")
+                            if (side_range < 1.0 and front_range > 2.0):
+                                around_corner_first_turn = True
+                                around_corner_go_back = False
+                                # previous_heading = current_heading
+                                state = transition("ROTATE_AROUND_WALL")
 
                     # TODO verify this
                     elif state == "TURN_TO_ALLIGN_TO_WALL":
@@ -148,12 +152,12 @@ if __name__ == '__main__':
                     # TODO Check this
                     # goes back to the wall to continue the wall following
                     elif state == "GO_BACK_TO_WALL":
-                        if multiranger.right <= ref_distance_from_wall + 0.1:
+                        if is_close(multiranger.right):
                             # if close enough to the wall again, then forward along wall again
                             state = transition("FORWARD_ALONG_WALL")
 
                     elif state == "ROTATE_AROUND_WALL":
-                        if multiranger.front < ref_distance_from_wall + 0.2:
+                        if is_close(multiranger.front):
                             # If it's close from a wall (front), then it's time to rotate and place itself
                             # in front of the wall.
                             state = transition("TURN_TO_FIND_WALL")
@@ -165,38 +169,36 @@ if __name__ == '__main__':
 
                     print(state)
 
-
-
                     ##### handle state ations ########
                     if state == "TAKE_OFF":
-                        twist = motion_commander.take_off()
+                        motion_commander.take_off()
 
                     elif state == "FORWARD":
-                        twist = motion_commander.start_forward()
+                        motion_commander.start_forward()
 
                     elif state == "HOVER":
-                        twist = motion_commander.stop()
+                        motion_commander.stop()
 
                     elif state == "TURN_TO_FIND_WALL":
-                        twist = motion_commander.stop()
+                        motion_commander.stop()
                         if (time.time() - state_start_time) > 1:
-                            twist = motion_commander.start_turn_left(max_rate)
+                            motion_commander.start_turn_left(max_rate)
 
                     elif state == "TURN_TO_ALLIGN_TO_WALL":
                         # hover for 2 sec, perform the calculus and then turn
-                        twist = motion_commander.stop()
+                        motion_commander.stop()
                         if (time.time() - state_start_time) > 2:
                             twist = motion_commander.start_turn_left(max_rate)
 
                     elif state == "FORWARD_ALONG_WALL":
                         # twist = twistForwardAlongWall(side_range)
-                        twist = motion_commander.start_forward()
+                        motion_commander.start_forward()
 
                     elif state == "GET_AWAY_FROM_WALL":
-                        twist = motion_commander.left(distanceToGoAwayFromWall)
+                        motion_commander.left(distanceToGoAwayFromWall)
 
                     elif state == "GO_BACK_TO_WALL":
-                        twist = motion_commander.right(distanceToGoAwayFromWall)
+                        motion_commander.right(distanceToGoAwayFromWall)
 
                     # elif state == "ROTATE_AROUND_WALL":
                     #     if around_corner_first_turn:
@@ -229,7 +231,7 @@ if __name__ == '__main__':
                     #             around_corner_go_back = False
 
                     elif state == "ROTATE_IN_CORNER":
-                        twist = motion_commander.stop()
-                        twist = motion_commander.turn_left(90)
+                        motion_commander.stop()
+                        motion_commander.turn_left(90)
 
                 motion_commander.land()
