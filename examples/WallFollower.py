@@ -27,7 +27,7 @@ def logicIsCloseTo(self, real_value=0.0, checked_value=0.0, margin=0.05):
 
 # Determine whether the drone is closed to an obstacle or not. Let's say the threshold is 0.3
 def is_close(range):
-    MIN_DISTANCE = 0.3  # meters
+    MIN_DISTANCE = 0.5  # meters
     if range is None:
         return False
     else:
