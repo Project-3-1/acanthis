@@ -65,7 +65,7 @@ if __name__ == '__main__':
                 max_speed = 0.2
                 max_rate = 0.2
                 state_start_time = 0
-                state = "TAKE_OFF"
+                state = "FORWARD"
                 previous_heading = 0.0
                 sizeOfRoom = 3
                 distanceToGoAwayFromWall = sizeOfRoom / 2
@@ -80,10 +80,7 @@ if __name__ == '__main__':
                         keep_flying = False
 
                     ##### handle state transitions #######
-                    if state == "TAKE_OFF":
-                        # if higher than 0.5, fly forward
-                        if multiranger.down > HEIGHT:
-                            state = transition("FORWARD")
+    
 
                     elif state == "FORWARD":
                         # if close enough to the front wall, turn to find it and be in front of it.
