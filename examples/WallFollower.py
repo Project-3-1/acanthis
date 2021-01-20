@@ -63,9 +63,9 @@ if __name__ == '__main__':
                 start_following_target = False
                 ref_distance_from_wall = 0.5
                 max_speed = 0.2
-                max_rate = 0.5
+                max_rate = 0.2
                 state_start_time = 0
-                state = "FORWARD"
+                state = "TAKE_OFF"
                 previous_heading = 0.0
                 sizeOfRoom = 3
                 distanceToGoAwayFromWall = sizeOfRoom / 2
