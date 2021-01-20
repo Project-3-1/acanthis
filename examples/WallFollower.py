@@ -47,13 +47,13 @@ if __name__ == '__main__':
     cf = Crazyflie(rw_cache='./cache')
     with SyncCrazyflie(URI, cf=cf) as scf:
         # 1. Takes off (1st step) when the commander is created. Hovers at 1 m
-        with MotionCommander(scf, 0.3) as motion_commander:
+        with MotionCommander(scf, 0.4) as motion_commander:
             with Multiranger(scf) as multiranger:
 
                 keep_flying = True
                 ranges = ["front", "left", "right", "back"]
                 switch = "next_is_right"
-                HEIGHT = 0.3  # meter
+                HEIGHT = 0.4  # meter
                 VELOCITY = 0.5
                 field_of_view = 0.5
                 distance_parallel_to_wall_btw_turns = 0.5
