@@ -39,10 +39,8 @@ def is_close(range):
 
 # Transition state and restart the timer
 def transition(newState):
-    global state_start_time
-    state = newState
-    state_start_time = time.time()
-    return state
+    # state = newState
+    return (state, time.time())
 
 
 if __name__ == '__main__':
@@ -68,7 +66,7 @@ if __name__ == '__main__':
                 start_following_target = False
                 ref_distance_from_wall = 0.5
                 max_speed = 0.2
-                max_rate = 0.2
+                max_rate = 45
                 state_start_time = 0
                 state = "FORWARD"
                 previous_heading = 0.0
@@ -89,7 +87,7 @@ if __name__ == '__main__':
                     elif state == "FORWARD":
                         # if close enough to the front wall, turn to find it and be in front of it.
                         if is_close(multiranger.front):
-                            state = transition("TURN_TO_FIND_WALL")
+                            state, state_start_time = transition("TURN_TO_FIND_WALL")
 
                     elif state == "HOVER":
                         print(state)
@@ -104,7 +102,7 @@ if __name__ == '__main__':
                             # previous_heading = current_heading
                             angle = direction * (1.57 - math.atan(front_range / side_range))
                             # time to rotate in order to be parallel to the wall
-                            state = transition("TURN_TO_ALLIGN_TO_WALL")
+                            state, state_start_time = transition("TURN_TO_ALLIGN_TO_WALL")
                             print("got angle ", angle)
 
                         # TODO verify this
@@ -116,59 +114,60 @@ if __name__ == '__main__':
                                 around_corner_first_turn = True
                                 around_corner_go_back = False
                                 # previous_heading = current_heading
-                                state = transition("ROTATE_AROUND_WALL")
+                                state, state_start_time = transition("ROTATE_AROUND_WALL")
 
                     # TODO verify this
                     elif state == "TURN_TO_ALLIGN_TO_WALL":
+                        state, state_start_time = transition("HOVER")
                         # print(current_heading)
                         # print(wraptopi(current_heading - previous_heading), angle)
                         # if logicIsCloseTo(wraptopi(current_heading - previous_heading), angle, 0.1):
-                        if is_close(multiranger.right):
-                            state = transition("FORWARD_ALONG_WALL")
+                        #if is_close(multiranger.right):
+                        #    state, state_start_time = transition("FORWARD_ALONG_WALL")
 
                     elif state == "FORWARD_ALONG_WALL":
                         # if the drone is too far from the wall, it means that there was an opening or a corner
                         # so it should turn there to explore it.
                         if multiranger.right > 2:
                             around_corner_first_turn = True
-                            state = transition("ROTATE_AROUND_WALL")
+                            state, state_start_time = transition("ROTATE_AROUND_WALL")
                         # if it gets close to a wall in front of it, it means that it reached a corner and
                         # it has to rotate to
                         # follow the next wall
                         if front_range < ref_distance_from_wall:
-                            state = transition("ROTATE_IN_CORNER")
+                            state, state_start_time = transition("ROTATE_IN_CORNER")
                             # previous_heading = current_heading
                         # if 3 sec have been elapsed, then it will explore the center area for a it and
                         # then come back to the wall.
                         if state_start_time > 3:
-                            state = transition("GET_AWAY_FROM_WALL")
+                            state, state_start_time = transition("GET_AWAY_FROM_WALL")
 
                     # fly perpendicular to the wall to explore the center of the room while not too
                     # far from the wall
                     elif state == "GET_AWAY_FROM_WALL":
                         if multiranger.right >= distanceToGoAwayFromWall:
                             # goes back to the wall to continue the wall following
-                            state = transition("GO_BACK_TO_WALL")
+                            state, state_start_time = transition("GO_BACK_TO_WALL")
 
                     # TODO Check this
                     # goes back to the wall to continue the wall following
                     elif state == "GO_BACK_TO_WALL":
                         if is_close(multiranger.right):
                             # if close enough to the wall again, then forward along wall again
-                            state = transition("FORWARD_ALONG_WALL")
+                            state, state_start_time = transition("FORWARD_ALONG_WALL")
 
                     elif state == "ROTATE_AROUND_WALL":
                         if is_close(multiranger.front):
                             # If it's close from a wall (front), then it's time to rotate and place itself
                             # in front of the wall.
-                            state = transition("TURN_TO_FIND_WALL")
+                            state, state_start_time = transition("TURN_TO_FIND_WALL")
 
                     elif state == "ROTATE_IN_CORNER":
                         #  print(current_heading - previous_heading)
                         if is_close(multiranger.right) and not is_close(multiranger.front):
-                            state = transition("TURN_TO_FIND_WALL")
+                            state, state_start_time = transition("TURN_TO_FIND_WALL")
 
-                    print(state)
+                    print(state, state_start_time)
 
                     ##### handle state ations ########
                     if state == "TAKE_OFF":
@@ -187,9 +186,10 @@ if __name__ == '__main__':
 
                     elif state == "TURN_TO_ALLIGN_TO_WALL":
                         # hover for 2 sec, perform the calculus and then turn
-                        motion_commander.stop()
+                        motion_commander.start_linear_motion(0, 0, 0)
+                        print("stop stop stop")
                         if (time.time() - state_start_time) > 2:
-                            twist = motion_commander.start_turn_left(max_rate)
+                            motion_commander.start_turn_left(max_rate)
 
                     elif state == "FORWARD_ALONG_WALL":
                         # twist = twistForwardAlongWall(side_range)
