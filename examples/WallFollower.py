@@ -39,6 +39,7 @@ def is_close(range):
 
 # Transition state and restart the timer
 def transition(newState):
+    global state_start_time
     state = newState
     state_start_time = time.time()
     return state
