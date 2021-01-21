@@ -68,7 +68,7 @@ if __name__ == '__main__':
                 max_speed = 0.2
                 max_rate = 45
                 state_start_time = 0
-                state = "FORWARD"
+                state = "HOVER"
                 previous_heading = 0.0
                 sizeOfRoom = 3
                 distanceToGoAwayFromWall = sizeOfRoom / 2
