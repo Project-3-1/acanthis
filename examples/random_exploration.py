@@ -34,7 +34,7 @@ logging.basicConfig(level=logging.ERROR)
 
 # Determine whether the drone is closed to an obstacle or not. Let's say the threshold is 0.3
 def is_close(range):
-    MIN_DISTANCE = 0.3  # meters
+    MIN_DISTANCE = 0.5  # meters
 
     if range is None:
         return False
@@ -42,10 +42,10 @@ def is_close(range):
         return range < MIN_DISTANCE
 
 
-def target_is_found():
-    # TODO
-    return False
-
+def go_outward():
+    delta = (multiranger.left) / 2
+    motion_commander.move_distance(0, delta, 0)
+    motion_commander.move_distance(0, -delta, 0)
 
 if __name__ == '__main__':
     # Initialize the low-level drivers (don't list the debug drivers)
@@ -60,71 +60,80 @@ if __name__ == '__main__':
                 ranges = ["front", "left", "right", "back"]
                 switch = "next_is_right"
                 HEIGHT = 0.3  # meter
-                VELOCITY = 0.1
-                field_of_view = 0.5
-                distance_parallel_to_wall_btw_turns = 0.5
-                is_parallel_to_first_wall = False
-                first_wall_is_found = False
-                start_following_target = False
 
-                # TODO, if the target is already in the field of vision of the quadcopter, then the drone should enter
-                #  the following_target step already and not try to find the 1st wall. We need to check for the target
-                #  after every step of the algo !!!
+                forward_velocity= 0.2
+                wall_distance = 0.3
+                outward_time = 40
 
+                #
+                outward_timer = outward_time
                 time.sleep(3)
-                while keep_flying and not target_is_found():
-                    # TODO add the check target
-                    if not is_close(multiranger.front):
-                        motion_commander.start_forward(VELOCITY)
-                        time.sleep(1)
+                first_wall_is_found = False
+
+                # align to wall
+
+                motion_commander.start_forward(forward_velocity)
+                while not first_wall_is_found:
+                    # if the drone is close to a wall in front, then it stops etc. And it will set
+                    # "first_wall_is_found" to true to exit this while loop
+                    # if there is nothing close in front, then it just doesn't do any action, it will continue
+                    # the start_forward move that has been called after the take off.
+                    # if is_close(multiranger.up):
+                    #         keep_flying = False
 
                     if is_close(multiranger.front):
                         motion_commander.stop()
-                        rand = random.randint(0, 180)
-                        motion_commander.turn_right(rand)
 
                         front_distance = multiranger.front
                         right_distance = multiranger.right
                         left_distance = multiranger.left
+
                         # if there is an obstacle closer to the drone on the right side than on the left side
-                        # 1 is arbitrary, need to change the value
                         if multiranger.right < multiranger.left and right_distance < 1:
                             # computing the required angle to yaw in order to fly parallel to the wall.
                             angle_to_yaw = math.degrees(math.atan(right_distance / front_distance))
-                            # Compute a random angle which is the required angle to be parallel to the wall +
-                            # a random value which is between 0 and 180
-                            randAngle = angle_to_yaw + rand
-                            motion_commander.turn_left(randAngle)
-                            time.sleep(1)
+                            # turn left and be parallel to the wall
+                            motion_commander.turn_left(angle_to_yaw)
+                            first_wall_is_found = True
+                            angle_to_yaw_radians = math.radians(angle_to_yaw)
 
                         # if there is an obstacle closer to the drone on the left side than on the left side
                         elif multiranger.left < multiranger.right and left_distance < 1:
                             # computing the required angle to yaw in order to fly parallel to the wall.
                             angle_to_yaw = math.degrees(math.atan(left_distance / front_distance))
-                            # Compute a random angle which is the required angle to be parallel to the wall +
-                            # a random value which is between 0 and 180
-                            randAngle = angle_to_yaw + rand
-                            motion_commander.right(randAngle)
-                            time.sleep(1)
+                            # turn right and be parallel to the wall
+                            motion_commander.turn_right(angle_to_yaw)
+                            first_wall_is_found = True
+                            angle_to_yaw_radians = math.radians(angle_to_yaw)
 
+                        # In case the left and right distances are equal or if the distance is smaller than 1m,
+                        # then it will turn 90 degrees in a random direction (left or right)
                         else:
-                            motion_commander.right(rand)
-                            time.sleep(1)
+                            r1 = random.randint(0, 1)
+                            if r1 == 0:
+                                motion_commander.turn_left(90)
+                            else:
+                                motion_commander.turn_right(90)
+                            first_wall_is_found = True
+                        # TODO add the corner case
 
-                if target_is_found():
-                    print('The drone has found the target!')
-                    motion_commander.stop()
-                    motion_commander.land()
-                    keep_flying = False
 
-                # security measure
-                if not keep_flying:
-                    motion_commander.stop()
-                    motion_commander.land()
-                    # TODO not sure about the landing technique and velocity
-                # To avoid: "quadcopter often crashed once the battery level reached below
-                # a certain unspecified threshold. "
-                # TODO add a method to check the battery life. If the battery is too low,
-                #  then the drone has to land before it crashes by itself because of the empty battery.
+                # exploration
+                while True:
 
-                print('Demo terminated!')
+                    motion_commander.start_forward(forward_velocity)
+
+                    if multiranger.right < wall_distance: 
+                        print("wall too close to the right")
+                        motion_commander.move_distance(0, wall_distance - multiranger.right, 0)
+
+                    if multiranger.front < wall_distance:
+                        motion_commander.turn_left(90)
+                        outward_timer = outward_time
+
+                    outward_timer -= 1
+                    
+                    if(outward_timer == 0):
+                        go_outward()
+                        outward_timer = outward_time
+                    time.sleep(0.1)                        
